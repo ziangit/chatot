@@ -1,0 +1,26 @@
+#!/bin/zsh
+# Builds Chatot.app from the SwiftPM products, signs it ad hoc, installs to ~/Applications, registers the Service.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+CONFIG=${1:-release}
+swift build -c "$CONFIG" --product Chatot 2>&1 | grep -E "error|warning: var|Compiling|Build complete" | tail -5
+BIN=".build/$CONFIG"
+APP="build/Chatot.app"
+rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$BIN/Chatot" "$APP/Contents/MacOS/Chatot"
+cp -R "$BIN/chatot_ChatotCore.bundle" "$APP/Contents/Resources/"
+cp scripts/Info.plist "$APP/Contents/Info.plist"
+echo -n "APPL????" > "$APP/Contents/PkgInfo"
+# Ad-hoc signature (Accessibility permission is tied to it; a dev certificate avoids re-prompts after rebuilds).
+codesign --force --deep --sign "${CHATOT_SIGN_IDENTITY:--}" "$APP" 2>&1 | grep -v "replacing existing signature" || true
+# Install for the user and register with Launch Services + the Services menu.
+DEST="$HOME/Applications/Chatot.app"
+mkdir -p "$HOME/Applications"
+if pgrep -x Chatot >/dev/null; then pkill -x Chatot; sleep 0.5; fi
+rm -rf "$DEST"; cp -R "$APP" "$DEST"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DEST" >/dev/null 2>&1 || true
+/System/Library/CoreServices/pbs -update >/dev/null 2>&1 || true
+# Seed the user config dir with the repo .env once, so the installed app finds the key without the repo.
+mkdir -p "$HOME/.config/chatot"
+if [[ -f .env && ! -f "$HOME/.config/chatot/.env" ]]; then cp .env "$HOME/.config/chatot/.env"; chmod 600 "$HOME/.config/chatot/.env"; echo "copied .env to ~/.config/chatot/.env"; fi
+echo "installed $DEST"

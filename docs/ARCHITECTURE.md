@@ -38,6 +38,15 @@
 ### Local (Ollama)
 - qwen3:8b: `think:false` works, TTFT 0.07 s warm, but 23 tok/s → 65 s for 855 words; quality below Haiku (actors→演员, learner→学习者). qwen3:4b ignored `think:false` and ran away. Local is an optional tier only; revisit with ≥32 GB and Qwen3-30B-A3B.
 
+### Build & app (learned 2026-11-01 while building)
+- Command Line Tools ship neither XCTest nor the Testing module; `swift test` fails with "no such module". Tests are a plain executable target (`swift run chatot-tests`).
+- The `.app` is assembled by `scripts/build-app.sh`: SwiftPM binary + `chatot_ChatotCore.bundle` (resources, found via `Bundle.module` through `Bundle.main.resourceURL`) + `scripts/Info.plist` + ad-hoc codesign, installed to `~/Applications`, then `lsregister -f` and `pbs -update`. Verified: the Service shows in `pbs -dump_pboard` and `NSPerformService("Translate with Chatot", pboard)` reaches the app.
+- `NSServices.NSPortName` must equal `CFBundleName` ("Chatot") or the service never connects.
+- Global hotkeys use Carbon `RegisterEventHotKey` (no permission needed). Selection reading uses AX `kAXSelectedTextAttribute`, then simulated ⌘C via `CGEvent` with pasteboard restore; both need Accessibility.
+- Region capture shells out to `/usr/sbin/screencapture -i -x`, which provides the crosshair UI and triggers the Screen Recording prompt for the app itself. Captures are downscaled to 1600 px long side before upload.
+- `screencapture` from a terminal fails with "could not create image from display" unless the terminal has Screen Recording; `NSView.cacheDisplay` renders SwiftUI hosting views blank. Panel self-render that works: `layer.render(in:)` or `CGWindowListCreateImage(.optionIncludingWindow)` on the app's own window (dev hook `--snapshot=path`, used with `--translate=text`).
+- Dev hooks: `Chatot --translate="text"` opens the panel on launch; `--snapshot=path` writes a PNG of the panel 6 s later.
+
 ### macOS
 - No app can add a top-level item to another app's context menu; Services appear under the "Services" submenu. Electron apps (VS Code, Slack) don't show Services → hotkey path required.
 - Accessibility permission is bound to the app's code signature; ad-hoc signed builds re-prompt after every rebuild. Fix: free Apple ID development certificate or Xcode.

@@ -1,7 +1,7 @@
 # Session handoff
 
-**Current phase:** Phase 0 complete — planning done, docs scaffolded, API benchmarked (no app code yet)
-**Next concrete step:** Phase 1 — create the Swift package (`Package.swift`, menubar app target, settings, `.env`/keychain loading), then Phase 2 providers starting with the Claude Messages API client (streaming, thinking disabled, effort low, cached system prompt).
+**Current phase:** Phases 1–5 implemented and installed (v0.1.0); awaiting the user's hands-on check of the two permission-gated paths.
+**Next concrete step:** User tries ⌥⌘T in Terminal/VS Code/Chrome (grants Accessibility when prompted) and ⌥⌘R (grants Screen Recording), reports anything off. Then Phase 6 polish: "Ask about this" action, per-app overrides, language auto-detect, launch at login, hotkey customization, glossary auto-consistency across chunks.
 
 ## Done so far (2026-11-01)
 - Git repo initialized on `main`, remote `origin` = https://github.com/ziangit/chatot (remote is empty, nothing pushed).
@@ -12,12 +12,18 @@
 - API benchmark done 2026-11-01: first text 0.5 s, 855 words in 11.7 s single / 4.2 s chunked, screenshot 4.3 s, ~$0.0015 per long translation. See docs/ARCHITECTURE.md.
 - Ollama 0.40 installed via brew with qwen3:8b and qwen3:4b pulled (optional local tier; can be removed).
 
+## Verified automatically (2026-11-01)
+- `swift build` clean; `swift run chatot-tests` 32 checks, 0 failures.
+- CLI end-to-end through the API: 855 words in 2.8 s over 9 segments, table passed through; screenshot path works.
+- Installed app: launches as menubar-only, hotkeys registered, Service registered (`pbs -dump_pboard`), `NSPerformService` invocation translated in 1.5 s, panel rendered correctly (self-render hook).
+- NOT yet exercised by a human: ⌥⌘T selection reading (needs Accessibility grant), ⌥⌘R region capture (needs Screen Recording grant), the Services menu item clicked from a real right-click, Settings window, Pin/Copy buttons.
+
 ## Phase plan
-1. Scaffold: Swift package, menubar app, settings, `.env`/keychain loading.
-2. Providers: Claude Messages API (primary), Codex CLI (fallback), Claude CLI (fallback), Ollama (optional). Chunker + validator + glossary. Benchmark warm vs cold.
-3. Text triggers: macOS Services menu item; global hotkey with Accessibility selection read and clipboard fallback. Verify in Terminal.app, iTerm2, VS Code, Chrome.
-4. Floating non-activating panel with streaming, Copy, Pin.
-5. Screen-region capture → image to Haiku; Vision OCR concurrently for bounding boxes/overlay.
+1. DONE Scaffold: Swift package, menubar app, settings, `.env`/keychain loading.
+2. DONE Providers: Claude Messages API (primary), Codex CLI (fallback), Claude CLI (fallback), Ollama (optional). Chunker + validator + glossary. Benchmark warm vs cold.
+3. DONE (untested by human) Text triggers: macOS Services menu item; global hotkey with Accessibility selection read and clipboard fallback. Verify in Terminal.app, iTerm2, VS Code, Chrome.
+4. DONE Floating non-activating panel with streaming, Copy, Pin.
+5. DONE (untested by human) Screen-region capture → image to Haiku; Vision OCR concurrently for bounding boxes/overlay.
 6. Polish: per-app overrides, language auto-detect, launch at login; optional browser extension for inline page translation.
 
 ## Open questions
