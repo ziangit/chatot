@@ -11,6 +11,7 @@ System-wide macOS translator: right-click, hotkey, or screen-region capture on t
 - Every provider call goes through the `Provider` protocol; UI never talks to a model directly.
 - Every translation chunk is validated before display (CJK ratio, length plausibility) and retried on failure.
 - Benchmarks are recorded in docs/ARCHITECTURE.md with the date; decisions cite numbers, not vibes.
+- Tests: `swift run chatot-tests` (plain executable harness; Command Line Tools ship no XCTest). End-to-end: `swift run chatot-cli translate "text"`.
 - Use the `claude-api` skill when writing or changing Anthropic API code.
 
 ## Hard constraints (never violate)
@@ -23,4 +24,4 @@ System-wide macOS translator: right-click, hotkey, or screen-region capture on t
 
 ## Where to look
 - Technical reference & gotchas: docs/ARCHITECTURE.md (read on demand)
-- Prompts: prompts/translate.md (text), prompts/screenshot.md (images)
+- Prompts: Sources/ChatotCore/Prompts/translate.md (text), screenshot.md (images)
