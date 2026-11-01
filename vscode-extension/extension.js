@@ -8,6 +8,7 @@ function send(action, text) {
   });
 }
 
+let hintShown = false;
 async function terminalSelection() {
   const t = vscode.window.activeTerminal;
   if (t && typeof t.selection === 'string' && t.selection.trim()) {
@@ -18,6 +19,10 @@ async function terminalSelection() {
     if (!/\s/.test(sel)) {
       const clip = (await vscode.env.clipboard.readText()).trim();
       if (clip.length > sel.length && clip.includes(sel)) return { text: clip, source: 'clipboard' };
+    }
+    if (!/\s/.test(sel) && !hintShown) {
+      hintShown = true;
+      vscode.window.showInformationMessage('Chatot: only the word under the cursor was selected. In a TUI like Claude Code, hold ⌥ while dragging to select natively, then right-click.');
     }
     return { text: sel, source: 'terminal' };
   }
