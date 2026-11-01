@@ -2,7 +2,7 @@
   "name": "chatot-vscode",
   "displayName": "Chatot Translate",
   "description": "Adds 'Translate with Chatot' to the terminal and editor context menus; sends the selection to the Chatot macOS app.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "ziangit",
   "license": "MIT",
   "repository": { "type": "git", "url": "https://github.com/ziangit/chatot" },

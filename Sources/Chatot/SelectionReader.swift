@@ -48,6 +48,11 @@ enum SelectionReader {
                     else if let d = imageData(from: pb) { result = .image(d) }
                     pb.clearContents()
                     if !saved.isEmpty { pb.writeObjects(saved) }
+                } else if let s = pb.string(forType: .string), !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    // Nothing was copied (e.g. a TUI like Claude Code owns the selection and already copied it on mouse-up):
+                    // fall back to the clipboard. The panel shows the text, so a stale clipboard is visible, not silent.
+                    Log.info("no copy happened; falling back to clipboard text")
+                    result = .text(s)
                 }
                 Log.info("selection via ⌘C fallback: \(pb.changeCount != before ? "got data" : "nothing copied")")
                 completion(result)
