@@ -1,0 +1,28 @@
+{
+  "name": "chatot-vscode",
+  "displayName": "Chatot Translate",
+  "description": "Adds 'Translate with Chatot' to the terminal and editor context menus; sends the selection to the Chatot macOS app.",
+  "version": "0.1.0",
+  "publisher": "ziangit",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/ziangit/chatot" },
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "chatot.translateTerminalSelection", "title": "Translate with Chatot" },
+      { "command": "chatot.translateSelection", "title": "Translate with Chatot" },
+      { "command": "chatot.translateRegion", "title": "Chatot: Translate Screen Region" }
+    ],
+    "menus": {
+      "terminal/context": [ { "command": "chatot.translateTerminalSelection", "group": "navigation@1" } ],
+      "editor/context": [ { "command": "chatot.translateSelection", "when": "editorHasSelection", "group": "navigation@1" } ]
+    },
+    "keybindings": [
+      { "command": "chatot.translateTerminalSelection", "key": "alt+cmd+t", "mac": "alt+cmd+t", "when": "terminalFocus" },
+      { "command": "chatot.translateSelection", "key": "alt+cmd+t", "mac": "alt+cmd+t", "when": "editorTextFocus && editorHasSelection" }
+    ]
+  }
+}

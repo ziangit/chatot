@@ -1,7 +1,7 @@
 # Session handoff
 
 **Current phase:** Phases 1–5 implemented and installed (v0.1.0); awaiting the user's hands-on check of the two permission-gated paths.
-**Next concrete step:** User tries ⌥⌘T in Terminal/VS Code/Chrome (grants Accessibility when prompted) and ⌥⌘R (grants Screen Recording), reports anything off. Then Phase 6 polish: "Ask about this" action, per-app overrides, language auto-detect, launch at login, hotkey customization, glossary auto-consistency across chunks.
+**Next concrete step:** User reloads VS Code/Cursor window and right-clicks a terminal selection → 'Translate with Chatot'; tries ⌥⌘T in Terminal/VS Code/Chrome (grants Accessibility when prompted) and ⌥⌘R (grants Screen Recording), reports anything off. Then Phase 6 polish: "Ask about this" action, per-app overrides, language auto-detect, launch at login, hotkey customization, glossary auto-consistency across chunks.
 
 ## Done so far (2026-11-01)
 - Git repo initialized on `main`, remote `origin` = https://github.com/ziangit/chatot (remote is empty, nothing pushed).
@@ -16,6 +16,7 @@
 - `swift build` clean; `swift run chatot-tests` 32 checks, 0 failures.
 - CLI end-to-end through the API: 855 words in 2.8 s over 9 segments, table passed through; screenshot path works.
 - Installed app: launches as menubar-only, hotkeys registered, Service registered (`pbs -dump_pboard`), `NSPerformService` invocation translated in 1.5 s, panel rendered correctly (self-render hook).
+- 2026-11-01 later: app moved to /Applications with icon; `chatot://` URL scheme verified; VS Code extension packaged and installed into VS Code and Cursor (needs window reload).
 - NOT yet exercised by a human: ⌥⌘T selection reading (needs Accessibility grant), ⌥⌘R region capture (needs Screen Recording grant), the Services menu item clicked from a real right-click, Settings window, Pin/Copy buttons.
 
 ## Phase plan

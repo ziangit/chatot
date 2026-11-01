@@ -7,6 +7,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let services = ServicesHandler()
     var settingsWindow: SettingsWindowController?
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleURLEvent(_:reply:)), forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
+    }
+
+    /// chatot://translate?text=...  (used by the VS Code extension and any other integration)
+    @objc func handleURLEvent(_ event: NSAppleEventDescriptor, reply: NSAppleEventDescriptor) {
+        guard let str = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue, let url = URL(string: str) else { return }
+        Log.info("url event: \(url.scheme ?? "")://\(url.host ?? "") (\(str.count) chars)")
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        switch url.host {
+        case "translate":
+            if let t = items.first(where: { $0.name == "text" })?.value, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { panel.translate(text: t) }
+            else { panel.showMessage("chatot://translate needs a text parameter.") }
+        case "region": translateRegion()
+        case "clipboard": translateClipboard()
+        case "selection": translateSelection()
+        default: panel.showMessage("Unknown chatot:// action: \(url.host ?? "")")
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.info("Chatot launched, bundle \(Bundle.main.bundleIdentifier ?? "none"), path \(Bundle.main.bundlePath)")
         services.panel = panel

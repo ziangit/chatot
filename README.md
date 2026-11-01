@@ -8,11 +8,15 @@ Runs on Claude Haiku 5.5 through the Anthropic API (covered by the Max plan's mo
 
 ```
 cp .env.example .env            # put ANTHROPIC_API_KEY in it
-./scripts/build-app.sh          # builds, signs ad hoc, installs ~/Applications/Chatot.app, registers the Service
-open ~/Applications/Chatot.app
+./scripts/build-app.sh          # builds, signs ad hoc, installs /Applications/Chatot.app, registers the Service
+open /Applications/Chatot.app
 ```
 
 First use of ⌥⌘T asks for Accessibility permission; first use of ⌥⌘R asks for Screen Recording. Both prompts come from macOS. After an ad-hoc rebuild the Accessibility grant may need to be re-done (set `CHATOT_SIGN_IDENTITY` to a developer certificate to avoid that).
+
+## VS Code / Cursor
+
+Electron apps draw their own context menus, so the macOS Services entry never appears there. The `vscode-extension/` folder adds **Translate with Chatot** to the integrated terminal and editor right-click menus (and ⌥⌘T inside the editor). See `vscode-extension/README.md` to build and install; it talks to the app through the `chatot://translate?text=…` URL scheme, which any other tool can use too (`chatot://region`, `chatot://clipboard`, `chatot://selection`).
 
 ## Develop
 
