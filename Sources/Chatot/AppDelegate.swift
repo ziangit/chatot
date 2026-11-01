@@ -1,10 +1,12 @@
 import AppKit
+import ApplicationServices
 import ChatotCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     let panel = TranslationPanelController()
     let services = ServicesHandler()
+    let selectionWatcher = SelectionWatcher()
     var settingsWindow: SettingsWindowController?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -34,6 +36,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSUpdateDynamicServices()
         setupStatusItem()
         registerHotKeys()
+        selectionWatcher.onTranslate = { [weak self] text in self?.panel.translate(text: text) }
+        selectionWatcher.start()
+        // Both the selection button and ⌥⌘T read the selection through Accessibility; ask once at launch.
+        let trusted = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        Log.info("accessibility trusted: \(trusted)")
         if let arg = CommandLine.arguments.dropFirst().first(where: { $0.hasPrefix("--translate=") }) {
             // Dev hook: `Chatot --translate="text"` opens the panel immediately.
             panel.translate(text: String(arg.dropFirst("--translate=".count)))

@@ -17,6 +17,7 @@
 - CLI end-to-end through the API: 855 words in 2.8 s over 9 segments, table passed through; screenshot path works.
 - Installed app: launches as menubar-only, hotkeys registered, Service registered (`pbs -dump_pboard`), `NSPerformService` invocation translated in 1.5 s, panel rendered correctly (self-render hook).
 - 2026-11-01 later: app moved to /Applications with icon; `chatot://` URL scheme verified; VS Code extension packaged and installed into VS Code and Cursor (needs window reload).
+- 2026-11-01 later: floating 译 button on selection (SelectionWatcher) added; app prompts for Accessibility at launch (log showed trusted: false until granted).
 - NOT yet exercised by a human: ⌥⌘T selection reading (needs Accessibility grant), ⌥⌘R region capture (needs Screen Recording grant), the Services menu item clicked from a real right-click, Settings window, Pin/Copy buttons.
 
 ## Phase plan
