@@ -1,7 +1,7 @@
 # Session handoff
 
 **Current phase:** Phases 1–5 implemented and installed (v0.1.0); awaiting the user's hands-on check of the two permission-gated paths.
-**Next concrete step:** User reloads VS Code/Cursor window and right-clicks a terminal selection → 'Translate with Chatot'; tries ⌥⌘T in Terminal/VS Code/Chrome (grants Accessibility when prompted) and ⌥⌘R (grants Screen Recording), reports anything off. Then Phase 6 polish: "Ask about this" action, per-app overrides, language auto-detect, launch at login, hotkey customization, glossary auto-consistency across chunks.
+**Next concrete step:** User reloads VS Code/Cursor window (extension 0.1.2 installed), selects a block in the Claude Code terminal, right-clicks → 'Translate with Chatot' and confirms the whole block (not one word) is translated; tries ⌥⌘T in Terminal/VS Code/Chrome (grants Accessibility when prompted) and ⌥⌘R (grants Screen Recording), reports anything off. Then Phase 6 polish: "Ask about this" action, per-app overrides, language auto-detect, launch at login, hotkey customization, glossary auto-consistency across chunks.
 
 ## Done so far (2026-11-01)
 - Git repo initialized on `main`, remote `origin` = https://github.com/ziangit/chatot (remote is empty, nothing pushed).
@@ -18,6 +18,7 @@
 - Installed app: launches as menubar-only, hotkeys registered, Service registered (`pbs -dump_pboard`), `NSPerformService` invocation translated in 1.5 s, panel rendered correctly (self-render hook).
 - 2026-11-01 later: app moved to /Applications with icon; `chatot://` URL scheme verified; VS Code extension packaged and installed into VS Code and Cursor (needs window reload).
 - 2026-11-01 later: floating 译 button on selection (SelectionWatcher) added; app prompts for Accessibility at launch (log showed trusted: false until granted).
+- 2026-11-01 late: first human right-click test in the VS Code terminal translated only "mouse"→"鼠标". Cause: VS Code selects the word under the cursor on right-click, so `terminal.selection` was that one word while Claude Code's TUI had copied the real block to the clipboard. Extension 0.1.2 prefers the clipboard when the selection is a lone word contained in longer clipboard text (commit fd54c22).
 - NOT yet exercised by a human: ⌥⌘T selection reading (needs Accessibility grant), ⌥⌘R region capture (needs Screen Recording grant), the Services menu item clicked from a real right-click, Settings window, Pin/Copy buttons.
 
 ## Phase plan
