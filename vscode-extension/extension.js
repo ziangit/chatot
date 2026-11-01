@@ -8,24 +8,9 @@ function send(action, text) {
   });
 }
 
-let hintShown = false;
 async function terminalSelection() {
   const t = vscode.window.activeTerminal;
-  if (t && typeof t.selection === 'string' && t.selection.trim()) {
-    const sel = t.selection.trim();
-    // macOS VS Code selects the word under the cursor on right-click. When a TUI (Claude Code) owns the real
-    // selection it has already copied it to the clipboard; if that clipboard text is longer and contains the
-    // lone word, the clipboard is what the user meant.
-    if (!/\s/.test(sel)) {
-      const clip = (await vscode.env.clipboard.readText()).trim();
-      if (clip.length > sel.length && clip.includes(sel)) return { text: clip, source: 'clipboard' };
-    }
-    if (!/\s/.test(sel) && !hintShown) {
-      hintShown = true;
-      vscode.window.showInformationMessage('Chatot: only the word under the cursor was selected. In a TUI like Claude Code, hold ⌥ while dragging to select natively, then right-click.');
-    }
-    return { text: sel, source: 'terminal' };
-  }
+  if (t && typeof t.selection === 'string' && t.selection.trim()) return { text: t.selection, source: 'terminal' };
   if (t && t.selection === undefined) {
     // Very old VS Code without the selection API: copy the xterm selection and read it back, restoring the clipboard.
     const before = await vscode.env.clipboard.readText();
