@@ -9,7 +9,7 @@ final class ServicesHandler: NSObject {
         Log.info("service invoked with types \(pboard.types?.map { $0.rawValue } ?? [])")
         if let s = pboard.string(forType: .string), !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             DispatchQueue.main.async { self.panel?.translate(text: s) }
-        } else if let d = SelectionReader.imageData(from: pboard) {
+        } else if let d = ImageUtil.imageData(from: pboard) {
             DispatchQueue.main.async { self.panel?.translate(image: d) }
         } else {
             error.pointee = "Chatot: nothing to translate" as NSString

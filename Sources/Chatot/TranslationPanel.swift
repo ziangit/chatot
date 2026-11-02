@@ -19,7 +19,6 @@ final class PanelModel: ObservableObject {
     @Published var message: String? = nil
     @Published var isImage = false
     @Published var showOriginal = UserDefaults.standard.bool(forKey: AppConfig.Keys.showOriginal)
-    @Published var pinned = false
     @Published var rendered = NSAttributedString()
     var fullText: String { segments.map { PanelModel.translationOnly($0.output, image: isImage) }.joined(separator: "\n\n") }
 
@@ -96,7 +95,6 @@ struct SelectableText: NSViewRepresentable {
 struct PanelView: View {
     @ObservedObject var model: PanelModel
     var onCopy: () -> Void
-    var onPin: () -> Void
     var onClose: () -> Void
     var onToggleOriginal: () -> Void
 
@@ -108,7 +106,6 @@ struct PanelView: View {
                 Toggle("Original", isOn: $model.showOriginal).toggleStyle(.checkbox).font(.caption)
                     .onChange(of: model.showOriginal) { _, v in UserDefaults.standard.set(v, forKey: AppConfig.Keys.showOriginal); onToggleOriginal() }
                 Button(action: onCopy) { Image(systemName: "doc.on.doc") }.help("Copy translation")
-                Button(action: onPin) { Image(systemName: model.pinned ? "pin.fill" : "pin") }.help("Keep panel open")
                 Button(action: onClose) { Image(systemName: "xmark") }.help("Close")
             }
             .buttonStyle(.borderless)
@@ -131,7 +128,7 @@ final class TranslationPanelController {
     private var lastFit = Date.distantPast
 
     init() {
-        let view = PanelView(model: model, onCopy: { [weak self] in self?.copyAll() }, onPin: { [weak self] in self?.togglePin() }, onClose: { [weak self] in self?.panel.orderOut(nil) }, onToggleOriginal: { [weak self] in self?.model.render(); self?.fitToContent(force: true) })
+        let view = PanelView(model: model, onCopy: { [weak self] in self?.copyAll() }, onClose: { [weak self] in self?.panel.orderOut(nil) }, onToggleOriginal: { [weak self] in self?.model.render(); self?.fitToContent(force: true) })
         let hosting = NSHostingView(rootView: view)
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 520, height: 360), styleMask: [.titled, .closable, .resizable, .nonactivatingPanel, .utilityWindow, .fullSizeContentView], backing: .buffered, defer: false)
         panel.title = "Chatot"
@@ -189,7 +186,7 @@ final class TranslationPanelController {
             let config = AppConfig.current()
             let providers = Translator.makeProviders(config: config)
             if providers.isEmpty {
-                model.message = "No translation provider available. Add ANTHROPIC_API_KEY in Settings, or install the claude/codex CLI."
+                model.message = "No ANTHROPIC_API_KEY. Add it in Settings (or ~/.config/chatot/.env)."
                 model.status = "No provider"
                 return nil
             }
@@ -230,25 +227,15 @@ final class TranslationPanelController {
     }
 
     /// Put the panel where it does not cover the text being translated, and make it as large as that space allows.
-    /// The "avoid" rect is the selected text (Accessibility), else a band of the front window around the mouse.
     private func place(textLength: Int) {
-        guard !panel.isVisible || !model.pinned else { return }
         let mouse = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main else { return }
         let vf = screen.visibleFrame
         let m: CGFloat = 12
-        let selection = SelectionReader.axSelectionBounds()?.intersection(vf)
-        let window = SelectionReader.axFocusedWindowFrame()?.intersection(vf)
-        var avoid: NSRect
-        var how: String
-        if let sel = selection, !sel.isEmpty {
-            avoid = sel; how = "selection"
-        } else if let w = window, !w.isEmpty {
-            let lo = max(w.minY, mouse.y - 300), hi = min(w.maxY, mouse.y + 300)
-            avoid = NSRect(x: w.minX, y: lo, width: w.width, height: max(1, hi - lo)); how = "window band"
-        } else {
-            avoid = NSRect(x: vf.minX, y: max(vf.minY, mouse.y - 300), width: vf.width, height: min(600, vf.height)); how = "mouse band"
-        }
+        // Without Accessibility we cannot see where the selected text is; assume a band around the mouse,
+        // since a right-click happens on the selection.
+        let avoid = NSRect(x: vf.minX, y: max(vf.minY, mouse.y - 300), width: vf.width, height: min(600, vf.height))
+        var how = "mouse band"
         let minW: CGFloat = 380, minH: CGFloat = 200
         let maxW = max(520, vf.width * 0.45)
         // Candidate free regions around the avoid rect; sides first because the user reads left-to-right.
@@ -289,7 +276,7 @@ final class TranslationPanelController {
     /// Grow the panel so the whole translation is visible without scrolling: measure the real text at the current
     /// width, extend away from the source text first, and spill the other way only when the screen runs out.
     private func fitToContent(force: Bool) {
-        guard panel.isVisible, !model.pinned, !screenArea.isEmpty else { return }
+        guard panel.isVisible, !screenArea.isEmpty else { return }
         if !force && Date().timeIntervalSince(lastFit) < 0.25 { return }
         lastFit = Date()
         let m: CGFloat = 12
@@ -337,8 +324,6 @@ final class TranslationPanelController {
         pb.clearContents(); pb.setString(model.fullText, forType: .string)
         model.status = "Copied"
     }
-
-    private func togglePin() { model.pinned.toggle() }
 
     /// Dev hook: render the panel's own content to a PNG (no screen-recording permission needed).
     func snapshot(to path: String) {

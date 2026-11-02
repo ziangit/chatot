@@ -2,13 +2,13 @@ import Foundation
 import ChatotCore
 
 // chatot-cli: exercise the translation pipeline from the terminal.
-//   chatot-cli translate [--file PATH] [--provider ID] [--no-chunk] [TEXT...]
+//   chatot-cli translate [--file PATH] [--no-chunk] [TEXT...]
 //   chatot-cli image PATH
 //   chatot-cli providers
 //   chatot-cli config
 
 func usage() -> Never {
-    FileHandle.standardError.write("usage: chatot-cli translate [--file PATH] [--provider ID] [--no-chunk] [TEXT] | image PATH | providers | config\n".data(using: .utf8)!)
+    FileHandle.standardError.write("usage: chatot-cli translate [--file PATH] [--no-chunk] [TEXT] | image PATH | providers | config\n".data(using: .utf8)!)
     exit(2)
 }
 

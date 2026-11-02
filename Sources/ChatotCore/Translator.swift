@@ -21,19 +21,11 @@ public final class Translator {
         self.config = config; self.prompts = prompts; self.providers = providers; self.glossary = glossary
     }
 
-    /// Builds the provider list from config, in fallback order, skipping unavailable ones.
+    /// The one provider: Claude Messages API with the user's key. Empty when no key is configured.
     public static func makeProviders(config: Config) -> [Provider] {
-        let all: [Provider] = [
-            ClaudeAPIProvider(apiKey: config.anthropicKey, model: config.claudeModel, effort: config.claudeEffort),
-            CodexCLIProvider(model: config.codexModel),
-            ClaudeCLIProvider(),
-            OllamaProvider(model: config.ollamaModel, baseURL: config.ollamaURL),
-        ]
-        var ordered: [Provider] = []
-        for id in config.providerOrder {
-            if let p = all.first(where: { $0.id == id }), p.isAvailable() { ordered.append(p) } else { Log.info("provider \(id) unavailable, skipped") }
-        }
-        return ordered
+        let p = ClaudeAPIProvider(apiKey: config.anthropicKey, model: config.claudeModel, effort: config.claudeEffort)
+        if !p.isAvailable() { Log.info("claude-api unavailable: no ANTHROPIC_API_KEY") }
+        return p.isAvailable() ? [p] : []
     }
 
     var expectCJK: Bool {

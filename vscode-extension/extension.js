@@ -40,8 +40,7 @@ function activate(context) {
       const text = ed ? ed.selections.map(s => ed.document.getText(s)).join('\n\n') : '';
       if (!text.trim()) { vscode.window.showInformationMessage('Chatot: select some text first.'); return; }
       send('translate', text);
-    }),
-    vscode.commands.registerCommand('chatot.translateRegion', () => send('region'))
+    })
   );
 }
 

@@ -1,22 +1,18 @@
 import AppKit
-import ChatotCore
 
-/// Interactive screen-region capture using the system `screencapture` tool (handles the crosshair UI and permissions).
-enum RegionCapture {
-    static func capture(_ completion: @escaping (Data?) -> Void) {
-        let path = FileManager.default.temporaryDirectory.appendingPathComponent("chatot-capture-\(UUID().uuidString).png").path
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        p.arguments = ["-i", "-x", "-t", "png", path]
-        p.terminationHandler = { _ in
-            defer { try? FileManager.default.removeItem(atPath: path) }
-            guard let data = FileManager.default.contents(atPath: path), !data.isEmpty else { completion(nil); return }
-            completion(downscale(data, maxSide: 1600) ?? data)
-        }
-        do { try p.run() } catch { Log.error("screencapture failed: \(error)"); completion(nil) }
+enum ImageUtil {
+    /// PNG data from a pasteboard holding an image or an image file URL.
+    static func imageData(from pb: NSPasteboard) -> Data? {
+        if let d = pb.data(forType: .png) { return d }
+        if let d = pb.data(forType: .tiff), let rep = NSBitmapImageRep(data: d), let png = rep.representation(using: .png, properties: [:]) { return png }
+        if let urls = pb.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], let u = urls.first,
+           ["png", "jpg", "jpeg", "gif", "webp", "tiff", "heic"].contains(u.pathExtension.lowercased()),
+           let img = NSImage(contentsOf: u), let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+           let png = rep.representation(using: .png, properties: [:]) { return png }
+        return nil
     }
 
-    /// Keep requests small: long side capped, re-encoded as PNG.
+    /// Keep requests small: long side capped, re-encoded as PNG. Returns nil when no downscale is needed.
     static func downscale(_ data: Data, maxSide: CGFloat) -> Data? {
         guard let img = NSImage(data: data), let rep = NSBitmapImageRep(data: data) else { return nil }
         let w = CGFloat(rep.pixelsWide), h = CGFloat(rep.pixelsHigh)

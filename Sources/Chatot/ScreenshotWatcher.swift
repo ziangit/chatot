@@ -139,7 +139,7 @@ final class ScreenshotWatcher {
         let pb = NSPasteboard.general
         guard pb.changeCount != lastChangeCount else { return }
         lastChangeCount = pb.changeCount
-        guard enabled, pb.string(forType: .string) == nil, let data = SelectionReader.imageData(from: pb) else { return }
+        guard enabled, pb.string(forType: .string) == nil, let data = ImageUtil.imageData(from: pb) else { return }
         // Ignore images copied by Chatot itself and copies that came with a file (Finder copy).
         if pb.availableType(from: [.fileURL]) != nil { return }
         Log.info("new image on clipboard (\(data.count / 1024) KB)")
@@ -175,23 +175,4 @@ final class ScreenshotWatcher {
         hide()
         if let d = d { onTranslate?(d) }
     }
-}
-
-/// Drop target laid over the menubar icon: drag the screenshot thumbnail (or any image / image file) onto it.
-final class ImageDropView: NSView {
-    var onImage: ((Data) -> Void)?
-    override init(frame: NSRect) {
-        super.init(frame: frame)
-        registerForDraggedTypes([.fileURL, .png, .tiff])
-    }
-    required init?(coder: NSCoder) { fatalError() }
-    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { .copy }
-    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        guard let data = SelectionReader.imageData(from: sender.draggingPasteboard) else { return false }
-        Log.info("image dropped on menubar icon (\(data.count / 1024) KB)")
-        onImage?(data)
-        return true
-    }
-    // Let clicks reach the status button underneath.
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }

@@ -4,12 +4,7 @@ import Foundation
 public struct Config: Equatable {
     public var anthropicKey: String?
     public var claudeModel: String = "claude-haiku-5-5"
-    public var codexModel: String = "gpt-6-luna"
-    public var ollamaModel: String = "qwen3:8b"
-    public var ollamaURL: String = "http://localhost:11434"
     public var targetLanguage: String = "Simplified Chinese"
-    /// Provider ids in fallback order.
-    public var providerOrder: [String] = ["claude-api"]
     public var maxConcurrency: Int = 6
     public var chunkTargetChars: Int = 700
     public var claudeEffort: String = "low"
@@ -30,13 +25,7 @@ public struct Config: Equatable {
         var c = Config()
         c.anthropicKey = merged["ANTHROPIC_API_KEY"].flatMap { $0.isEmpty ? nil : $0 }
         if let m = merged["CHATOT_CLAUDE_MODEL"], !m.isEmpty { c.claudeModel = m }
-        if let m = merged["CHATOT_CODEX_MODEL"], !m.isEmpty { c.codexModel = m }
-        if let m = merged["CHATOT_OLLAMA_MODEL"], !m.isEmpty { c.ollamaModel = m }
-        if let m = merged["CHATOT_OLLAMA_URL"], !m.isEmpty { c.ollamaURL = m }
         if let m = merged["CHATOT_TARGET_LANG"], !m.isEmpty { c.targetLanguage = m }
-        if let m = merged["CHATOT_PROVIDERS"], !m.isEmpty {
-            c.providerOrder = m.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        }
         if let m = merged["CHATOT_EFFORT"], !m.isEmpty { c.claudeEffort = m }
         if let m = merged["CHATOT_CONCURRENCY"], let n = Int(m), n > 0 { c.maxConcurrency = n }
         if let m = merged["CHATOT_CHUNK_CHARS"], let n = Int(m), n > 100 { c.chunkTargetChars = n }

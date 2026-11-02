@@ -11,8 +11,7 @@ struct ConfigTests {
     }
 
     func testEnvironmentOverrides() {
-        let c = Config.load(environment: ["CHATOT_PROVIDERS": "codex-cli, ollama", "CHATOT_TARGET_LANG": "Japanese", "CHATOT_CONCURRENCY": "3"])
-        expect(c.providerOrder == ["codex-cli", "ollama"])
+        let c = Config.load(environment: ["CHATOT_TARGET_LANG": "Japanese", "CHATOT_CONCURRENCY": "3"])
         expect(c.targetLanguage == "Japanese")
         expect(c.maxConcurrency == 3)
     }
