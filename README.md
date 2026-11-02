@@ -1,4 +1,5 @@
-# Chatot
+<p align="center"><img src="docs/assets/chatot.svg" width="160" alt="Chatot pixel art"></p>
+<h1 align="center">Chatot</h1>
 
 [中文说明](README.zh-CN.md)
 
