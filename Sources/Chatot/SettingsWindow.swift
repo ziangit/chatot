@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(AppConfig.Keys.codexModel) var codexModel = "gpt-6-luna"
     @AppStorage(AppConfig.Keys.chunkChars) var chunkChars = 700
     @AppStorage(SelectionWatcher.defaultsKey) var selectionButton = true
+    @AppStorage(ScreenshotWatcher.defaultsKey) var screenshotButton = true
     @State var apiKey = Keychain.read("ANTHROPIC_API_KEY") ?? ""
     @State var saved = ""
     @State var available: [String] = []
@@ -33,6 +34,7 @@ struct SettingsView: View {
             }
             Section("Triggers") {
                 Toggle("Show a floating 译 button after selecting text in any app", isOn: $selectionButton)
+                Toggle("Offer to translate new screenshots (file or clipboard)", isOn: $screenshotButton)
             }
             Section("Shortcuts") {
                 Text("⌥⌘T  Translate selection\n⌥⌘R  Translate screen region\nRight-click → Services → Translate with Chatot").font(.system(.body, design: .monospaced))

@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let panel = TranslationPanelController()
     let services = ServicesHandler()
     let selectionWatcher = SelectionWatcher()
+    let screenshotWatcher = ScreenshotWatcher()
     var settingsWindow: SettingsWindowController?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -38,6 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         registerHotKeys()
         selectionWatcher.onTranslate = { [weak self] text in self?.panel.translate(text: text) }
         selectionWatcher.start()
+        screenshotWatcher.onTranslate = { [weak self] data in self?.panel.translate(image: data) }
+        screenshotWatcher.start()
         // Both the selection button and ⌥⌘T read the selection through Accessibility; ask once at launch.
         let trusted = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
         Log.info("accessibility trusted: \(trusted)")
@@ -56,11 +59,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let b = statusItem.button {
             b.image = NSImage(systemSymbolName: "character.bubble", accessibilityDescription: "Chatot")
             b.image?.isTemplate = true
+            let drop = ImageDropView(frame: b.bounds)
+            drop.autoresizingMask = [.width, .height]
+            drop.onImage = { [weak self] data in self?.panel.translate(image: data) }
+            b.addSubview(drop)
         }
         let menu = NSMenu()
         menu.addItem(withTitle: "Translate Selection", action: #selector(translateSelection), keyEquivalent: "")
         menu.addItem(withTitle: "Translate Screen Region", action: #selector(translateRegion), keyEquivalent: "")
         menu.addItem(withTitle: "Translate Clipboard", action: #selector(translateClipboard), keyEquivalent: "")
+        menu.addItem(withTitle: "Translate Last Screenshot", action: #selector(translateLastScreenshot), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Show Panel", action: #selector(showPanel), keyEquivalent: "")
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
@@ -103,6 +111,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let s = pb.string(forType: .string), !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { panel.translate(text: s) }
         else if let d = SelectionReader.imageData(from: pb) { panel.translate(image: d) }
         else { panel.showMessage("Clipboard has no text or image.") }
+    }
+
+    @objc func translateLastScreenshot() {
+        let dir = ScreenshotWatcher.screenshotFolder()
+        let files = ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
+            .filter { ["png", "jpg", "jpeg", "heic", "tiff"].contains($0.pathExtension.lowercased()) }
+            .sorted { ((try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) > ((try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) }
+        if let f = files.first, let d = FileManager.default.contents(atPath: f.path) { panel.translate(image: d) }
+        else { panel.showMessage("No screenshot found in \(dir.path).") }
     }
 
     @objc func showPanel() { panel.show() }
