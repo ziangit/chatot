@@ -14,6 +14,11 @@ cp scripts/Info.plist "$APP/Contents/Info.plist"
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 echo -n "APPL????" > "$APP/Contents/PkgInfo"
 # Ad-hoc signature (Accessibility permission is tied to it; a dev certificate avoids re-prompts after rebuilds).
+# Prefer a stable identity so macOS keeps Accessibility / Screen Recording / Desktop grants across rebuilds.
+# "Chatot Dev" is a self-signed code-signing cert in the login keychain (see docs/ARCHITECTURE.md); ad-hoc otherwise.
+if [ -z "${CHATOT_SIGN_IDENTITY:-}" ] && security find-identity -v -p codesigning 2>/dev/null | grep -q '"Chatot Dev"'; then
+  CHATOT_SIGN_IDENTITY="Chatot Dev"
+fi
 codesign --force --deep --sign "${CHATOT_SIGN_IDENTITY:--}" "$APP" 2>&1 | grep -v "replacing existing signature" || true
 # Install for the user and register with Launch Services + the Services menu.
 if [[ -w /Applications ]]; then DEST="/Applications/Chatot.app"; else DEST="$HOME/Applications/Chatot.app"; mkdir -p "$HOME/Applications"; fi

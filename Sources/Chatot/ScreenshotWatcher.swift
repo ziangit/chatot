@@ -18,24 +18,37 @@ final class ScreenshotWatcher {
     private var knownFiles: Set<String> = []
     private var folder: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
 
+    private let thumb = NSImageView()
+    private let label = NSTextField(labelWithString: "Screenshot captured")
+
     init() {
-        button = NSButton(title: "译 Translate screenshot", target: nil, action: nil)
-        button.bezelStyle = .rounded
-        button.controlSize = .regular
-        button.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        button.sizeToFit()
-        panel = NSPanel(contentRect: NSRect(origin: .zero, size: NSSize(width: button.frame.width + 12, height: button.frame.height + 12)), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.level = .floating
+        // A card: thumbnail on top, a big button below. Sits above the system screenshot UI (popUpMenu level).
+        let w: CGFloat = 260, thumbH: CGFloat = 130, rowH: CGFloat = 44
+        panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: w, height: thumbH + rowH + 22), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isFloatingPanel = true
+        panel.level = .popUpMenu   // after isFloatingPanel, which would reset it to .floating
         panel.hidesOnDeactivate = false
         panel.hasShadow = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.isReleasedWhenClosed = false
-        let content = NSView(frame: panel.contentRect(forFrameRect: panel.frame))
-        button.frame.origin = NSPoint(x: 6, y: 6)
-        content.addSubview(button)
+        let content = NSVisualEffectView(frame: panel.contentRect(forFrameRect: panel.frame))
+        content.material = .hudWindow; content.state = .active; content.wantsLayer = true
+        content.layer?.cornerRadius = 12; content.layer?.masksToBounds = true
+        thumb.frame = NSRect(x: 10, y: rowH + 12, width: w - 20, height: thumbH)
+        thumb.imageScaling = .scaleProportionallyUpOrDown
+        thumb.wantsLayer = true; thumb.layer?.cornerRadius = 6; thumb.layer?.masksToBounds = true
+        label.frame = NSRect(x: 12, y: rowH + thumbH + 12 - 2, width: w - 24, height: 0)
+        label.font = NSFont.systemFont(ofSize: 11); label.textColor = .secondaryLabelColor
+        label.isHidden = true
+        button = NSButton(title: "译  Translate this screenshot", target: nil, action: nil)
+        button.bezelStyle = .rounded
+        button.controlSize = .large
+        button.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        button.keyEquivalent = "\r"
+        button.frame = NSRect(x: 10, y: 8, width: w - 20, height: rowH - 8)
+        content.addSubview(thumb); content.addSubview(button)
         panel.contentView = content
         button.target = self
         button.action = #selector(clicked)
@@ -46,11 +59,19 @@ final class ScreenshotWatcher {
     }
 
     func start() {
-        folder = Self.screenshotFolder()
-        knownFiles = Self.listing(of: folder)
-        watchFolder()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.pollClipboard() }
-        Log.info("screenshot watcher started (folder \(folder.path))")
+        // The first read of ~/Desktop triggers the "access your Desktop folder" permission dialog, and the open()
+        // blocks until the user answers. Never do that on the main thread.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let dir = Self.screenshotFolder()
+            let files = Self.listing(of: dir)
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.folder = dir; self.knownFiles = files
+                self.watchFolder()
+                Log.info("screenshot watcher started (folder \(dir.path), \(files.count) files)")
+            }
+        }
     }
 
     /// `defaults read com.apple.screencapture location`, else ~/Desktop.
@@ -77,7 +98,14 @@ final class ScreenshotWatcher {
     }
 
     private func folderChanged() {
-        let now = Self.listing(of: folder)
+        let dir = folder
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let now = Self.listing(of: dir)
+            DispatchQueue.main.async { self?.folderChanged(now: now) }
+        }
+    }
+
+    private func folderChanged(now: Set<String>) {
         let added = now.subtracting(knownFiles)
         knownFiles = now
         guard enabled else { return }
@@ -107,12 +135,19 @@ final class ScreenshotWatcher {
 
     private func offer(_ data: Data) {
         pending = data
-        guard let vf = NSScreen.main?.visibleFrame else { return }
-        // Bottom-right, where macOS shows the screenshot thumbnail.
-        panel.setFrameOrigin(NSPoint(x: vf.maxX - panel.frame.width - 16, y: vf.minY + 16))
+        thumb.image = NSImage(data: data)
+        // Next to the mouse (the user just clicked Done / Copy Image), clamped to the screen; never under the
+        // system thumbnail in the bottom-right corner.
+        let mouse = NSEvent.mouseLocation
+        let vf = (NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main)?.visibleFrame ?? .zero
+        var origin = NSPoint(x: mouse.x + 16, y: mouse.y - panel.frame.height - 16)
+        origin.x = min(max(vf.minX + 8, origin.x), vf.maxX - panel.frame.width - 8)
+        origin.y = min(max(vf.minY + 8, origin.y), vf.maxY - panel.frame.height - 8)
+        panel.setFrameOrigin(origin)
         panel.orderFrontRegardless()
         hideTimer?.invalidate()
-        hideTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in self?.hide() }
+        hideTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in self?.hide() }
+        Log.info("screenshot card shown at \(Int(origin.x)),\(Int(origin.y))")
     }
 
     func hide() {
