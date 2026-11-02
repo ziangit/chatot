@@ -43,7 +43,7 @@ final class ScreenshotWatcher {
         label.frame = NSRect(x: 12, y: rowH + thumbH + 12 - 2, width: w - 24, height: 0)
         label.font = NSFont.systemFont(ofSize: 11); label.textColor = .secondaryLabelColor
         label.isHidden = true
-        button = NSButton(title: "译  Translate this screenshot", target: nil, action: nil)
+        button = NSButton(title: L("Translate this screenshot"), target: nil, action: nil)
         button.bezelStyle = .rounded
         button.controlSize = .large
         button.font = NSFont.systemFont(ofSize: 14, weight: .semibold)

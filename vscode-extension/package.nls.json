@@ -1,0 +1,5 @@
+{
+  "displayName": "Chatot Translate",
+  "description": "Adds 'Translate with Chatot' to the terminal and editor context menus; sends the selection to the Chatot macOS app.",
+  "translate": "Translate with Chatot"
+}

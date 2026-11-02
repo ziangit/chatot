@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Chatot"
+  },
+  "extDesc": {
+    "message": "Adds 'Translate with Chatot' to the right-click menu for selected text and images."
+  },
+  "menuText": {
+    "message": "Translate with Chatot"
+  },
+  "menuImage": {
+    "message": "Translate image with Chatot"
+  }
+}

@@ -7,7 +7,9 @@ A macOS menubar app that translates whatever you point at, anywhere on screen: s
 - Right-click selected text or an image → "Translate with Chatot". Native apps via Services ▸; VS Code/Cursor terminal and editor via a tiny extension (top-level item); Chrome via a tiny extension (top-level items for text and images).
 - macOS screenshots: after a screenshot is saved or "Copy Image" is clicked, a small card with the thumbnail and "译 Translate this screenshot" appears next to the mouse for 10 s (×, click elsewhere, or Settings to turn off).
 - Floating panel placed off the selected text, growing to fit the translation as it streams; text is selectable and ⌘C works; Original toggle; Copy; Close.
-- Provider: Claude Haiku 5.5 via the Messages API, key from `.env` or keychain. Nothing else.
+- Provider: Claude Haiku 5.5 via the Messages API by default, key from `.env` or keychain. Settings also offer ChatGPT (OpenAI API) and DeepSeek (text only) with their own key + model fields (asked 2026-11-02; the user uses Claude). API keys only, never web sessions.
+- UI in English or Simplified Chinese (Settings ▸ Language: System / English / 中文); menubar, Settings, panel, screenshot card, Services item, Chrome and VS Code menu items are all localized.
+- Icon: a 16×16 pixel-art Chatot (app icon on cream; black silhouette template in the menubar).
 - Progressive rendering: long text is split into paragraphs, translated in parallel, shown as each lands.
 - Output validation: chunks checked for plausibility; retried; never shown wrong silently.
 - Glossary passed with each chunk; tables and code blocks pass through untranslated.

@@ -21,11 +21,19 @@ public final class Translator {
         self.config = config; self.prompts = prompts; self.providers = providers; self.glossary = glossary
     }
 
-    /// The one provider: Claude Messages API with the user's key. Empty when no key is configured.
+    /// Display names for the provider ids.
+    public static let providerNames: [String: String] = ["claude": "Claude", "chatgpt": "ChatGPT", "deepseek": "DeepSeek"]
+
+    /// The provider chosen in config (Claude by default). Empty when its key is missing.
     public static func makeProviders(config: Config) -> [Provider] {
-        let p = ClaudeAPIProvider(apiKey: config.anthropicKey, model: config.claudeModel, effort: config.claudeEffort)
-        if !p.isAvailable() { Log.info("claude-api unavailable: no ANTHROPIC_API_KEY") }
-        return p.isAvailable() ? [p] : []
+        let p: Provider
+        switch config.provider {
+        case "chatgpt": p = OpenAICompatibleProvider(id: "chatgpt", apiKey: config.openaiKey, model: config.openaiModel, baseURL: "https://api.openai.com/v1", supportsImages: true)
+        case "deepseek": p = OpenAICompatibleProvider(id: "deepseek", apiKey: config.deepseekKey, model: config.deepseekModel, baseURL: "https://api.deepseek.com", supportsImages: false)
+        default: p = ClaudeAPIProvider(apiKey: config.anthropicKey, model: config.claudeModel, effort: config.claudeEffort)
+        }
+        if !p.isAvailable() { Log.info("\(p.id) unavailable: no API key"); return [] }
+        return [p]
     }
 
     var expectCJK: Bool {

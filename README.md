@@ -2,7 +2,7 @@
 
 System-wide translator for macOS. Select text in any app (terminal included) and click the floating **译 Translate** button that appears, press **⌥⌘T**, or right-click → Services → **Translate with Chatot** (native apps only; in VS Code/Cursor the bundled extension adds the menu item). Press **⌥⌘R** to drag a screen region and translate the text in it, screenshots and images included. The translation streams into a floating panel next to the cursor.
 
-Runs on Claude Haiku 5.5 through the Anthropic API (covered by the Max plan's monthly API credits), with the Codex CLI (ChatGPT login) and Claude CLI as fallbacks and Ollama as an optional offline tier.
+Runs on Claude Haiku 5.5 through the Anthropic API (covered by the Max plan's monthly API credits). ChatGPT (OpenAI API) and DeepSeek can be selected in Settings instead. UI in English or Simplified Chinese.
 
 ## Build and install
 
@@ -28,7 +28,7 @@ swift run chatot-cli providers
 swift run chatot-tests                                   # unit tests (no XCTest on Command Line Tools)
 ```
 
-Settings live in the menubar app (target language, provider order, models, API key in keychain). Glossary: `~/.config/chatot/glossary.txt` with `term = translation` lines. Log: `~/Library/Logs/chatot.log`.
+Settings live in the menubar app (language, target language, provider, model, API key in keychain). Glossary: `~/.config/chatot/glossary.txt` with `term = translation` lines. Log: `~/Library/Logs/chatot.log`.
 
 See `docs/ARCHITECTURE.md` for benchmarks and gotchas, `session-handoff.md` for status.
 

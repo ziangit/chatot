@@ -15,7 +15,7 @@ final class SegmentState: ObservableObject, Identifiable {
 
 final class PanelModel: ObservableObject {
     @Published var segments: [SegmentState] = []
-    @Published var status: String = "Ready"
+    @Published var status: String = L("Ready")
     @Published var message: String? = nil
     @Published var isImage = false
     @Published var showOriginal = UserDefaults.standard.bool(forKey: AppConfig.Keys.showOriginal)
@@ -58,8 +58,8 @@ final class PanelModel: ObservableObject {
                 if showOriginal && !seg.passthrough { out.append(NSAttributedString(string: seg.source + "\n", attributes: dim)) }
                 out.append(NSAttributedString(string: seg.output, attributes: seg.passthrough ? mono : body))
             }
-            if seg.output.isEmpty && !seg.done { out.append(NSAttributedString(string: seg.note ?? "Translating…", attributes: dim)) }
-            else if let n = seg.note, !seg.done || n.hasPrefix("unchanged") { out.append(NSAttributedString(string: "  " + n, attributes: note)) }
+            if seg.output.isEmpty && !seg.done { out.append(NSAttributedString(string: seg.note ?? L("Translating…"), attributes: dim)) }
+            else if let n = seg.note, !seg.done || n == L("unchanged") { out.append(NSAttributedString(string: "  " + n, attributes: note)) }
         }
         rendered = out
     }
@@ -103,10 +103,10 @@ struct PanelView: View {
             HStack(spacing: 8) {
                 Text(model.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Spacer()
-                Toggle("Original", isOn: $model.showOriginal).toggleStyle(.checkbox).font(.caption)
+                Toggle(L("Original"), isOn: $model.showOriginal).toggleStyle(.checkbox).font(.caption)
                     .onChange(of: model.showOriginal) { _, v in UserDefaults.standard.set(v, forKey: AppConfig.Keys.showOriginal); onToggleOriginal() }
-                Button(action: onCopy) { Image(systemName: "doc.on.doc") }.help("Copy translation")
-                Button(action: onClose) { Image(systemName: "xmark") }.help("Close")
+                Button(action: onCopy) { Image(systemName: "doc.on.doc") }.help(L("Copy translation"))
+                Button(action: onClose) { Image(systemName: "xmark") }.help(L("Close"))
             }
             .buttonStyle(.borderless)
             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -150,14 +150,14 @@ final class TranslationPanelController {
     }
 
     func showMessage(_ text: String) {
-        model.segments = []; model.message = text; model.status = "Chatot"; model.isImage = false
+        model.segments = []; model.message = text; model.status = L("Chatot"); model.isImage = false
         model.render()
         show()
         fitToContent(force: true)
     }
 
     func translate(text: String) {
-        start(status: "Translating \(text.count) characters…", isImage: false, textLength: text.count)
+        start(status: String(format: L("translating_chars"), text.count), isImage: false, textLength: text.count)
         let translator = makeTranslator()
         currentTask = Task { [model] in
             guard let translator = translator else { return }
@@ -166,7 +166,7 @@ final class TranslationPanelController {
     }
 
     func translate(image: Data) {
-        start(status: "Reading image (\(image.count / 1024) KB)…", isImage: true, textLength: 600)
+        start(status: String(format: L("reading_image"), image.count / 1024), isImage: true, textLength: 600)
         let translator = makeTranslator()
         currentTask = Task { [model] in
             guard let translator = translator else { return }
@@ -185,9 +185,13 @@ final class TranslationPanelController {
         do {
             let config = AppConfig.current()
             let providers = Translator.makeProviders(config: config)
+            let name = Translator.providerNames[config.provider] ?? config.provider
             if providers.isEmpty {
-                model.message = "No ANTHROPIC_API_KEY. Add it in Settings (or ~/.config/chatot/.env)."
-                model.status = "No provider"
+                model.message = String(format: L("no_key"), name); model.status = L("Chatot"); model.render()
+                return nil
+            }
+            if model.isImage && !providers.contains(where: { $0.supportsImages }) {
+                model.message = String(format: L("no_image_provider"), name); model.status = L("Chatot"); model.render()
                 return nil
             }
             return Translator(config: config, prompts: try Prompts.load(), providers: providers, glossary: Glossary.load())
@@ -201,7 +205,7 @@ final class TranslationPanelController {
         switch ev {
         case .segments(let segs):
             model.segments = segs.map(SegmentState.init(segment:))
-            model.status = "Translating \(segs.filter { $0.kind == .translate }.count) segment(s)…"
+            model.status = String(format: L("translating_segments"), segs.filter { $0.kind == .translate }.count)
         case .delta(let i, let t):
             guard i < model.segments.count else { return }
             model.segments[i].output += t
@@ -210,18 +214,18 @@ final class TranslationPanelController {
             guard i < model.segments.count else { return }
             let s = model.segments[i]; s.output = text; s.done = true; s.error = nil
             if provider != "passthrough" { s.note = String(format: "%@ · %.1fs", provider, secs) }
-            if !model.isImage && Validator.normalize(text) == Validator.normalize(s.source) { s.note = "unchanged — nothing to translate" }
+            if !model.isImage && Validator.normalize(text) == Validator.normalize(s.source) { s.note = L("unchanged") }
             fitToContent(force: true)
         case .retrying(let i, let p, let r):
             guard i < model.segments.count else { return }
-            model.segments[i].note = "Retrying after \(p): \(r)"
+            model.segments[i].note = String(format: L("retrying"), p, r)
             model.segments[i].output = ""
         case .failed(let i, let err):
             guard i < model.segments.count else { return }
             model.segments[i].error = err; model.segments[i].done = true
         case .finished(let secs):
             let failed = model.segments.filter { $0.error != nil }.count
-            model.status = failed == 0 ? String(format: "Done in %.1fs", secs) : String(format: "Done in %.1fs, %d failed", secs, failed)
+            model.status = failed == 0 ? String(format: L("done_in"), secs) : String(format: L("done_failed"), secs, failed)
             fitToContent(force: true)
         }
     }
@@ -322,7 +326,7 @@ final class TranslationPanelController {
     private func copyAll() {
         let pb = NSPasteboard.general
         pb.clearContents(); pb.setString(model.fullText, forType: .string)
-        model.status = "Copied"
+        model.status = L("Copied")
     }
 
     /// Dev hook: render the panel's own content to a PNG (no screen-recording permission needed).

@@ -1,0 +1,5 @@
+{
+  "displayName": "Chatot 翻译",
+  "description": "在终端和编辑器右键菜单中添加“使用 Chatot 翻译”，把选中内容发送给 Chatot macOS 应用。",
+  "translate": "使用 Chatot 翻译"
+}

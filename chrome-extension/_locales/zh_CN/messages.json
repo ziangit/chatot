@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Chatot"
+  },
+  "extDesc": {
+    "message": "在右键菜单中添加“使用 Chatot 翻译”（文本和图片）。"
+  },
+  "menuText": {
+    "message": "使用 Chatot 翻译"
+  },
+  "menuImage": {
+    "message": "使用 Chatot 翻译图片"
+  }
+}

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Chatot",
-  "version": "0.1.0",
-  "description": "Adds 'Translate with Chatot' to the right-click menu for selected text and images.",
+  "name": "__MSG_extName__",
+  "version": "0.2.0",
+  "description": "__MSG_extDesc__",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9MUkAc9McV0SX6byOIGndfbSWDVmKikZ3cv+3mFH1lHl3pYR53dOB/ys3K8aptIrYPD1itWeY7ChhKH1itpB0ntSuFnQRsPhWRK0JITs5UKWgr2L539K+fA7tW2EY02k61rWB815vnBz7ZwtOatS1ETGXTecyrEQmys8iJwj3gU00exdUPgqvKD2gXMfyAuTdn1OtO8SGWXGXImACOkkDOl3PUb81mixT/u5g1ic5yCt+dlZOPUzuvlyLm4zYFL+/LXFbe5QYMTKNCKt9k0BonBsOmHwUtRNNXQQjX8kXArc1MlpKr+NhucIntYj8+60KHYlJ5h0YDQeb7JHarACqQIDAQAB",
   "permissions": [
     "contextMenus",
@@ -13,5 +13,6 @@
   },
   "icons": {
     "128": "icon.png"
-  }
+  },
+  "default_locale": "en"
 }

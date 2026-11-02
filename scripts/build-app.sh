@@ -10,8 +10,10 @@ rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/Chatot" "$APP/Contents/MacOS/Chatot"
 cp -R "$BIN/chatot_ChatotCore.bundle" "$APP/Contents/Resources/"
 cp scripts/Info.plist "$APP/Contents/Info.plist"
-[[ -f build/AppIcon.icns ]] || swift scripts/make-icon.swift build/AppIcon.icns
+if [[ ! -f build/AppIcon.icns || scripts/make-icon.swift -nt build/AppIcon.icns ]]; then swift scripts/make-icon.swift build/AppIcon.icns build/MenuIcon.png build/MenuIcon@2x.png; fi
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp build/MenuIcon.png build/MenuIcon@2x.png "$APP/Contents/Resources/"
+cp -R scripts/lproj/*.lproj "$APP/Contents/Resources/"
 echo -n "APPL????" > "$APP/Contents/PkgInfo"
 # Ad-hoc signature (Accessibility permission is tied to it; a dev certificate avoids re-prompts after rebuilds).
 # Prefer a stable identity so macOS keeps Accessibility / Screen Recording / Desktop grants across rebuilds.

@@ -1,18 +1,18 @@
 # Session handoff
 
-**Current phase:** v0.2 — scope reset to exactly the user's asks (2026-11-02). All installed, relaunched, pushed.
-**Next concrete step:** User exercises the four remaining paths and reports: (1) right-click in the Claude Code terminal → Translate with Chatot; (2) right-click in Chrome → Translate with Chatot / Translate image with Chatot; (3) right-click in a native app → Services ▸ Translate with Chatot; (4) take a screenshot → card → click. Then stop adding features unless asked.
+**Current phase:** v0.3 (2026-11-02) — pixel Chatot icon, provider options (Claude default / ChatGPT / DeepSeek), English + Chinese UI. Built, installed, relaunched, pushed.
+**Next concrete step:** User reloads the Chrome extension once (chrome://extensions ▸ ↻, manifest changed for i18n) and checks the new icon and Settings ▸ Language. Then exercises the four paths and reports: (1) right-click in the Claude Code terminal → Translate with Chatot; (2) right-click in Chrome → Translate with Chatot / Translate image with Chatot; (3) right-click in a native app → Services ▸ Translate with Chatot; (4) take a screenshot → card → click. Then stop adding features unless asked.
 
 ## UX rules from the user (non-negotiable)
 - "I just want select, right click, and translate." No modifier keys, no "press ⌘C first", no hints telling the user to do something different.
-- 2026-11-02: "how many functions are not asked by me? Just keep my intended function." Do not add features, menu items, hotkeys, fallbacks or prompts that were not requested. Claude API only.
+- 2026-11-02: "how many functions are not asked by me? Just keep my intended function." Do not add features, menu items, hotkeys, fallbacks or prompts that were not requested. API keys only (Claude by default; ChatGPT/DeepSeek options were requested 2026-11-02).
 
 ## What exists now
-- Chatot.app (menubar: Pause / Settings / Quit). Triggers: Services item (text + image), `chatot://translate?text=` and `chatot://image?url=` URL scheme, screenshot card (clipboard image or new file in the screenshot folder).
+- Chatot.app (menubar: pixel Chatot icon; Pause / Settings / Quit). Settings: Language (System/English/中文), target language, Provider picker (Claude / ChatGPT / DeepSeek) with model + key per provider, screenshot toggle. All UI strings via `L()` in `L10n.swift`. Triggers: Services item (text + image), `chatot://translate?text=` and `chatot://image?url=` URL scheme, screenshot card (clipboard image or new file in the screenshot folder).
 - Panel: placed off the selection (mouse band), grows with content, native text view (select, ⌘C, Original toggle, Copy, Close), screenshot output shows translations only.
-- VS Code/Cursor extension 0.2.0 (`vscode-extension/`): terminal/editor right-click items only.
-- Chrome extension (`chrome-extension/`, loaded unpacked by the user, ID mhkpkmkbjfdikhgjlnkfakkdhoennoai) + native-messaging host registered for Chrome/Chromium/Brave/Edge/Arc.
-- Core: Chunker, Validator (lenient for short labels/names; CJK→English auto-detect), Glossary, ClaudeAPIProvider only. Tests: `swift run chatot-tests`.
+- VS Code/Cursor extension 0.2.1 (`vscode-extension/`): terminal/editor right-click items only, localized (nls), installed in both.
+- Chrome extension 0.2.0 (`chrome-extension/`, loaded unpacked by the user, ID mhkpkmkbjfdikhgjlnkfakkdhoennoai, now with `_locales` en/zh_CN and the pixel icon) + native-messaging host registered for Chrome/Chromium/Brave/Edge/Arc. Needs one reload by the user.
+- Core: Chunker, Validator (lenient for short labels/names; CJK→English auto-detect), Glossary, ClaudeAPIProvider (default) + OpenAICompatibleProvider (ChatGPT, DeepSeek text-only); one provider active at a time. Tests: `swift run chatot-tests` (43 checks).
 
 ## State of the user's machine (not visible in the repo)
 - App signed with the self-signed identity "Chatot Dev" (login keychain) so TCC grants persist. Only permission needed now: Desktop folder access for the screenshot watcher (already granted). Accessibility and Screen Recording are no longer used.

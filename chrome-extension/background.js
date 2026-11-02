@@ -3,8 +3,8 @@
 const HOST = 'com.ziangit.chatot';
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({ id: 'chatot-text', title: 'Translate with Chatot', contexts: ['selection'] });
-  chrome.contextMenus.create({ id: 'chatot-image', title: 'Translate image with Chatot', contexts: ['image'] });
+  chrome.contextMenus.create({ id: 'chatot-text', title: chrome.i18n.getMessage('menuText'), contexts: ['selection'] });
+  chrome.contextMenus.create({ id: 'chatot-image', title: chrome.i18n.getMessage('menuImage'), contexts: ['image'] });
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {

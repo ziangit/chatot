@@ -12,7 +12,7 @@ final class ServicesHandler: NSObject {
         } else if let d = ImageUtil.imageData(from: pboard) {
             DispatchQueue.main.async { self.panel?.translate(image: d) }
         } else {
-            error.pointee = "Chatot: nothing to translate" as NSString
+            error.pointee = L("nothing_to_translate") as NSString
         }
     }
 }

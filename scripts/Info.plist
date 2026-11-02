@@ -6,6 +6,8 @@
     <key>CFBundleExecutable</key><string>Chatot</string>
     <key>CFBundleIdentifier</key><string>com.ziangit.chatot</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
     <key>CFBundleName</key><string>Chatot</string>
     <key>CFBundleDisplayName</key><string>Chatot</string>
     <key>CFBundlePackageType</key><string>APPL</string>

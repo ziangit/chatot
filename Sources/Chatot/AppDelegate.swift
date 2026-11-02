@@ -28,21 +28,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let t = items.first(where: { $0.name == "text" })?.value, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Log.info("translate request: \(t.count) chars, starts \"\(t.prefix(40).replacingOccurrences(of: "\n", with: " "))\"")
                 panel.translate(text: t)
-            } else { panel.showMessage("chatot://translate needs a text parameter.") }
+            } else { panel.showMessage(L("needs_text")) }
         case "image":
-            guard let u = items.first(where: { $0.name == "url" })?.value, let imgURL = URL(string: u) else { panel.showMessage("chatot://image needs a url parameter."); return }
-            panel.showMessage("Fetching image…")
+            guard let u = items.first(where: { $0.name == "url" })?.value, let imgURL = URL(string: u) else { panel.showMessage(String(format: L("unknown_action"), "image")); return }
+            panel.showMessage(L("Fetching image…"))
             URLSession.shared.dataTask(with: imgURL) { [weak self] data, _, err in
                 DispatchQueue.main.async {
                     guard let d = data, NSImage(data: d) != nil else {
                         Log.error("image url failed: \(err?.localizedDescription ?? "not an image") (\(data?.count ?? 0) bytes)")
-                        self?.panel.showMessage("Could not load image: \(err?.localizedDescription ?? "not an image")"); return
+                        self?.panel.showMessage(String(format: L("image_failed"), err?.localizedDescription ?? "not an image")); return
                     }
                     Log.info("image url fetched (\(d.count / 1024) KB)")
                     self?.panel.translate(image: ImageUtil.downscale(d, maxSide: 1600) ?? d)
                 }
             }.resume()
-        default: panel.showMessage("Unknown chatot:// action: \(url.host ?? "")")
+        default: panel.showMessage(String(format: L("unknown_action"), url.host ?? ""))
         }
     }
 
@@ -68,14 +68,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let b = statusItem.button {
-            b.image = NSImage(systemSymbolName: "character.bubble", accessibilityDescription: "Chatot")
-            b.image?.isTemplate = true
+            // Pixel Chatot silhouette (scripts/make-icon.swift), template so it follows the menubar colour.
+            let icon = NSImage(named: "MenuIcon") ?? NSImage(systemSymbolName: "character.bubble", accessibilityDescription: "Chatot")
+            icon?.isTemplate = true
+            icon?.size = NSSize(width: 18, height: 18)
+            b.image = icon
         }
+        buildMenu()
+    }
+
+    func buildMenu() {
         let menu = NSMenu()
-        pauseItem = menu.addItem(withTitle: "Pause Chatot", action: #selector(togglePause), keyEquivalent: "")
-        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        pauseItem = menu.addItem(withTitle: L("Pause Chatot"), action: #selector(togglePause), keyEquivalent: "")
+        menu.addItem(withTitle: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Chatot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: L("Quit Chatot"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         for item in menu.items where item.action != #selector(NSApplication.terminate(_:)) { item.target = self }
         statusItem.menu = menu
         applyPauseState()
@@ -86,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func applyPauseState() {
         let paused = Self.paused
-        pauseItem?.title = paused ? "Resume Chatot" : "Pause Chatot"
+        pauseItem?.title = paused ? L("Resume Chatot") : L("Pause Chatot")
         statusItem.button?.appearsDisabled = paused
         if paused { screenshotWatcher.hide() }
         Log.info("paused: \(paused)")
@@ -97,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem(); main.addItem(appItem)
         let appMenu = NSMenu(); appItem.submenu = appMenu
-        appMenu.addItem(withTitle: "Quit Chatot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: L("Quit Chatot"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let editItem = NSMenuItem(); main.addItem(editItem)
         let edit = NSMenu(title: "Edit"); editItem.submenu = edit
         edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
@@ -108,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openSettings() {
-        if settingsWindow == nil { settingsWindow = SettingsWindowController() }
+        if settingsWindow == nil { settingsWindow = SettingsWindowController(onLanguageChange: { [weak self] in self?.buildMenu(); self?.panel.model.render() }) }
         settingsWindow?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
