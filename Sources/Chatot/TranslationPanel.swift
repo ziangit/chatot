@@ -26,7 +26,7 @@ final class PanelModel: ObservableObject {
     static func translationOnly(_ text: String, image: Bool) -> String {
         guard image else { return text }
         return text.split(separator: "\n", omittingEmptySubsequences: false).map { line -> String in
-            if let r = line.range(of: " → ", options: .backwards) { return String(line[r.upperBound...]) }
+            if let r = line.range(of: " ║ ") { return String(line[r.upperBound...]) }
             return String(line)
         }.joined(separator: "\n")
     }
@@ -44,10 +44,10 @@ final class PanelModel: ObservableObject {
             if i > 0 || message != nil { out.append(NSAttributedString(string: "\n\n", attributes: body)) }
             if let e = seg.error { out.append(NSAttributedString(string: "⚠️ " + e, attributes: red)); continue }
             if isImage {
-                // Lines are "original → translation"; show the translation, and the original above it when asked.
+                // Lines are "original ║ translation" (║ never occurs in content); show the translation, original above when asked.
                 for (j, line) in seg.output.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
                     if j > 0 { out.append(NSAttributedString(string: "\n", attributes: body)) }
-                    if let r = line.range(of: " → ", options: .backwards) {
+                    if let r = line.range(of: " ║ ") {
                         if showOriginal { out.append(NSAttributedString(string: String(line[..<r.lowerBound]) + "\n", attributes: dim)) }
                         out.append(NSAttributedString(string: String(line[r.upperBound...]), attributes: body))
                     } else {
