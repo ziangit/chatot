@@ -43,12 +43,20 @@ public final class Translator {
 
     var systemPrompt: String { Prompts.decorate(prompts.translate, targetLanguage: config.targetLanguage, glossary: glossary) }
 
+    /// Target for this text: the configured language, or English when the text is already in a CJK language.
+    public func effectiveTarget(for text: String) -> String {
+        expectCJK && Validator.isMostlyCJK(text) ? "English" : config.targetLanguage
+    }
+
     /// Translate text. `chunk: false` sends the whole text as one segment.
     public func translate(_ text: String, chunk: Bool = true, onEvent: @escaping (TranslationEvent) -> Void) async {
         let start = Date()
         let segments = chunk ? Chunker.split(text, targetChars: config.chunkTargetChars) : [Segment(id: 0, kind: .translate, text: text)]
         onEvent(.segments(segments))
-        let system = systemPrompt
+        let target = effectiveTarget(for: text)
+        if target != config.targetLanguage { Log.info("source is mostly CJK; translating to \(target)") }
+        let system = Prompts.decorate(prompts.translate, targetLanguage: target, glossary: glossary)
+        let wantCJK = expectCJK && target == config.targetLanguage
         let limit = max(1, config.maxConcurrency)
         await withTaskGroup(of: Void.self) { group in
             var running = 0
@@ -59,7 +67,7 @@ public final class Translator {
                         onEvent(.completed(segment: seg.id, text: seg.text, provider: "passthrough", seconds: 0))
                         return
                     }
-                    await translateSegment(seg, request: TranslationRequest(system: system, text: Prompts.wrapSource(seg.text)), onEvent: onEvent)
+                    await translateSegment(seg, request: TranslationRequest(system: system, text: Prompts.wrapSource(seg.text)), expectCJK: wantCJK, onEvent: onEvent)
                 }
             }
             while running < limit, let seg = iterator.next() { launch(seg); running += 1 }
@@ -83,16 +91,22 @@ public final class Translator {
         onEvent(.finished(seconds: Date().timeIntervalSince(start)))
     }
 
-    func translateSegment(_ seg: Segment, request: TranslationRequest, validate: Bool = true, onEvent: @escaping (TranslationEvent) -> Void) async {
+    func translateSegment(_ seg: Segment, request: TranslationRequest, validate: Bool = true, expectCJK: Bool? = nil, onEvent: @escaping (TranslationEvent) -> Void) async {
         var errors: [String] = []
+        let wantCJK = expectCJK ?? self.expectCJK
         let usable = providers.filter { request.image == nil || $0.supportsImages }
         for provider in usable {
             for attempt in 0..<2 {
                 let t0 = Date()
                 var acc = ""
                 var streamed = ""
+                var req = request
+                if attempt > 0, let last = errors.last, last.contains("echo") {
+                    // The model repeated the source; say so explicitly on the retry.
+                    req = TranslationRequest(system: request.system, text: request.text + "\n\n(The previous answer repeated the source text unchanged. Output only the translation.)", image: request.image, imageMediaType: request.imageMediaType)
+                }
                 do {
-                    for try await piece in provider.stream(request) {
+                    for try await piece in provider.stream(req) {
                         acc += piece
                         // Only stream deltas live on the first attempt of the first provider; retries replace the text at the end.
                         if attempt == 0 && provider.id == usable.first?.id {
@@ -102,7 +116,7 @@ public final class Translator {
                     }
                     let out = acc.trimmingCharacters(in: .whitespacesAndNewlines)
                     if validate {
-                        let v = Validator.validate(source: seg.text, output: out, expectCJK: expectCJK)
+                        let v = Validator.validate(source: seg.text, output: out, expectCJK: wantCJK)
                         if !v.ok {
                             let reason = v.reason ?? "invalid"
                             Log.info("segment \(seg.id) \(provider.id) attempt \(attempt) rejected: \(reason)")

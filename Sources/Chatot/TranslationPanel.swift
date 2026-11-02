@@ -60,7 +60,7 @@ final class PanelModel: ObservableObject {
                 out.append(NSAttributedString(string: seg.output, attributes: seg.passthrough ? mono : body))
             }
             if seg.output.isEmpty && !seg.done { out.append(NSAttributedString(string: seg.note ?? "Translating…", attributes: dim)) }
-            else if let n = seg.note, !seg.done { out.append(NSAttributedString(string: "  " + n, attributes: note)) }
+            else if let n = seg.note, !seg.done || n.hasPrefix("unchanged") { out.append(NSAttributedString(string: "  " + n, attributes: note)) }
         }
         rendered = out
     }
@@ -213,6 +213,7 @@ final class TranslationPanelController {
             guard i < model.segments.count else { return }
             let s = model.segments[i]; s.output = text; s.done = true; s.error = nil
             if provider != "passthrough" { s.note = String(format: "%@ · %.1fs", provider, secs) }
+            if !model.isImage && Validator.normalize(text) == Validator.normalize(s.source) { s.note = "unchanged — nothing to translate" }
             fitToContent(force: true)
         case .retrying(let i, let p, let r):
             guard i < model.segments.count else { return }

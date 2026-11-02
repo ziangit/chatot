@@ -14,7 +14,7 @@ A macOS menubar app that translates whatever you point at, anywhere on screen: s
 - Provider: Claude Haiku 5.5 via Messages API only, by default (user's choice 2026-11-02: no Codex/Claude CLI fallovers). Codex CLI, Claude CLI and local Ollama remain implemented and can be re-enabled in Settings → Provider order.
 - Output validation: every chunk checked for Chinese-character ratio and plausible length; retried, then failed over, never shown wrong silently.
 - Glossary passed with each chunk for consistent terminology across chunks.
-- Default direction English → Simplified Chinese; target language configurable.
+- Default direction English → Simplified Chinese; target language configurable. Text that is already Chinese is translated to English instead.
 - Tables and code blocks pass through untranslated by default; prose around them is translated.
 
 ## Non-goals (explicitly out of scope for now)

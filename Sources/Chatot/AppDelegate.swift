@@ -21,7 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         switch url.host {
         case "translate":
-            if let t = items.first(where: { $0.name == "text" })?.value, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { panel.translate(text: t) }
+            if let t = items.first(where: { $0.name == "text" })?.value, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Log.info("translate request: \(t.count) chars, starts \"\(t.prefix(40).replacingOccurrences(of: "\n", with: " "))\"")
+                panel.translate(text: t)
+            }
             else { panel.showMessage("chatot://translate needs a text parameter.") }
         case "image":
             // chatot://image?url=https://… (Chrome extension, right-click on an image): download, then translate.
