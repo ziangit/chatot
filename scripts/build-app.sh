@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 CONFIG=${1:-release}
-swift build -c "$CONFIG" --product Chatot 2>&1 | grep -E "error|warning: var|Compiling|Build complete" | tail -5
+swift build -c "$CONFIG" --product Chatot 2>&1 | grep -E "error|warning: var|Compiling|Build complete" | tail -5 || true
 BIN=".build/$CONFIG"
 APP="build/Chatot.app"
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
