@@ -14,19 +14,13 @@ struct SettingsView: View {
     @State var saved = ""
     var onLanguageChange: () -> Void
 
-    static let languages = ["Simplified Chinese", "Traditional Chinese", "English", "Japanese", "Korean", "French", "German", "Spanish"]
-    static let models: [String: [String]] = [
-        "claude": ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"],
-        "chatgpt": ["gpt-6-luna", "gpt-6.1-terra", "gpt-6.1-sol", "gpt-6-astra"],
-        "deepseek": ["deepseek-flash", "deepseek-v4-pro"],
-    ]
     var keyAccount: String { provider == "chatgpt" ? "OPENAI_API_KEY" : provider == "deepseek" ? "DEEPSEEK_API_KEY" : "ANTHROPIC_API_KEY" }
     var modelBinding: Binding<String> { provider == "chatgpt" ? $openaiModel : provider == "deepseek" ? $deepseekModel : $claudeModel }
-    var modelList: [String] { Self.models[provider] ?? Self.models["claude"]! }
+    var modelList: [String] { AppConfig.models[provider] ?? AppConfig.models["claude"]! }
     /// A stored value that is no longer in the list (renamed model, old default) would leave the picker blank.
     func normalize() {
         if !modelList.contains(modelBinding.wrappedValue) { modelBinding.wrappedValue = modelList[0] }
-        if !Self.languages.contains(targetLanguage) { targetLanguage = Self.languages[0] }
+        if !AppConfig.languages.contains(targetLanguage) { targetLanguage = AppConfig.languages[0] }
     }
 
     var body: some View {
@@ -37,7 +31,7 @@ struct SettingsView: View {
                 }
                 .onChange(of: language) { _, _ in onLanguageChange() }
                 Picker(L("Target language"), selection: $targetLanguage) {
-                    ForEach(Self.languages, id: \.self) { Text(L($0)).tag($0) }
+                    ForEach(AppConfig.languages, id: \.self) { Text(L($0)).tag($0) }
                 }
                 Text(L("target_hint")).font(.caption).foregroundStyle(.secondary)
             }
