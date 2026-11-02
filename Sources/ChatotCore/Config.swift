@@ -9,7 +9,7 @@ public struct Config: Equatable {
     public var ollamaURL: String = "http://localhost:11434"
     public var targetLanguage: String = "Simplified Chinese"
     /// Provider ids in fallback order.
-    public var providerOrder: [String] = ["claude-api", "codex-cli", "claude-cli"]
+    public var providerOrder: [String] = ["claude-api"]
     public var maxConcurrency: Int = 6
     public var chunkTargetChars: Int = 700
     public var claudeEffort: String = "low"

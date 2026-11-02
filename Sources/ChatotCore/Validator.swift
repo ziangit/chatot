@@ -31,6 +31,9 @@ public enum Validator {
         let srcLetters = latinLetterCount(source)
         // Mostly non-prose source (numbers, symbols, code): anything non-empty passes.
         if srcLetters < 12 { return .pass }
+        // A single token (identifier, env var, URL, path) has no translation; the model is right to return it as is.
+        let words = source.split(whereSeparator: { $0.isWhitespace }).count
+        if words < 3 { return .pass }
         if normalize(out) == normalize(source) { return .fail("output equals source (echo)") }
         let ratio = Double(out.count) / Double(max(source.count, 1))
         if ratio < 0.12 { return .fail("output too short (\(Int(ratio * 100))% of source)") }

@@ -4,7 +4,7 @@ import ChatotCore
 
 struct SettingsView: View {
     @AppStorage(AppConfig.Keys.targetLanguage) var targetLanguage = "Simplified Chinese"
-    @AppStorage(AppConfig.Keys.providers) var providers = "claude-api, codex-cli, claude-cli"
+    @AppStorage(AppConfig.Keys.providers) var providers = "claude-api"
     @AppStorage(AppConfig.Keys.claudeModel) var claudeModel = "claude-haiku-5-5"
     @AppStorage(AppConfig.Keys.codexModel) var codexModel = "gpt-6-luna"
     @AppStorage(AppConfig.Keys.chunkChars) var chunkChars = 700

@@ -10,7 +10,7 @@ A macOS menubar app that translates whatever you point at, anywhere on screen: s
 - macOS screenshots: after ⇧⌘3/4/5 (file saved) or "Copy Image" in the screenshot preview, a small card with the thumbnail and a "译 Translate this screenshot" button appears next to the mouse for 10 s; click to translate, × or any click elsewhere dismisses it. Can be turned off in Settings. Also: drag the screenshot thumbnail onto the menubar icon, or menubar → Translate Last Screenshot.
 - Floating, non-activating panel with streaming output, Copy, Pin.
 - Progressive rendering: long text is split into paragraphs, translated in parallel, shown as each lands. First text in ~1-2 s.
-- Providers: Claude Haiku 5.5 via Messages API (primary), Codex CLI with ChatGPT login (fallback), Claude CLI (fallback), local Ollama (optional offline tier).
+- Provider: Claude Haiku 5.5 via Messages API only, by default (user's choice 2026-11-02: no Codex/Claude CLI fallovers). Codex CLI, Claude CLI and local Ollama remain implemented and can be re-enabled in Settings → Provider order.
 - Output validation: every chunk checked for Chinese-character ratio and plausible length; retried, then failed over, never shown wrong silently.
 - Glossary passed with each chunk for consistent terminology across chunks.
 - Default direction English → Simplified Chinese; target language configurable.

@@ -14,6 +14,11 @@ struct ValidatorTests {
         expect(!r.ok); expect(r.reason!.contains("echo"))
     }
 
+    func testIdentifierEchoPasses() {
+        expect(Validator.validate(source: "ANTHROPIC_API_KEY", output: "ANTHROPIC_API_KEY").ok)
+        expect(Validator.validate(source: "https://example.com/some/path", output: "https://example.com/some/path").ok)
+    }
+
     func testEnglishOutputFails() {
         let r = Validator.validate(source: src, output: "Sure, here is why the daemon keeps a warm session per provider: it avoids startup cost.")
         expect(!(r.ok))
