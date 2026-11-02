@@ -1,13 +1,13 @@
 # Session handoff
 
-**Current phase:** Phases 1–5 implemented and installed (v0.1.0, all pushed, last commit 5e2452e). Session ended 2026-11-01 ~23:30 right after fixing the VS Code terminal selection path; user is restarting to pick up the new env var.
-**Next concrete step:** In the NEW session, first ask the user whether select → right-click → "Translate with Chatot" in the Claude Code terminal now translates the whole block (the restart was needed so `CLAUDE_CODE_DISABLE_MOUSE=1` takes effect; check with `echo $CLAUDE_CODE_DISABLE_MOUSE` in their terminal and `tail ~/Library/Logs/chatot.log` for the `url event: chatot://translate (N chars)` length). If it works, move to Phase 6; if not, debug from the log before touching anything else. Then confirm ⌥⌘T in Terminal/VS Code/Chrome and ⌥⌘R (Screen Recording prompt).
+**Current phase:** Phases 1–5 implemented and installed (v0.1.0, all pushed). 2026-11-02: select → right-click → Translate in the Claude Code terminal CONFIRMED working by the user (log: `url event … (950 chars)`, whole block translated). Smart panel placement added (avoids the selected text, grows with text length).
+**Next concrete step:** User grants Accessibility and Screen Recording to /Applications/Chatot.app (they were in the System Settings file picker; the app was rebuilt afterwards, so the grant must be done/redone AFTER the 07:40 relaunch). Then verify: panel lands beside/below the selection and not on it (log `panel placed via selection|window band|mouse band`); ⌥⌘T; ⌥⌘R. Then Phase 6.
 
 ## UX rule from the user (2026-11-01, non-negotiable)
 "I just want select, right click, and translate." No modifier keys, no "press ⌘C first", no hints telling the user to do something different. If a path cannot deliver that, fix the environment or the app, not the user's habits.
 
 ## State of the user's machine (things a fresh session cannot see in the repo)
-- `/Applications/Chatot.app` installed via `scripts/build-app.sh`; menubar-only; Accessibility granted at some point after 22:52 (the 译 button appeared), Screen Recording NOT yet granted.
+- `/Applications/Chatot.app` installed via `scripts/build-app.sh`, rebuilt 2026-11-02 07:40 (ad-hoc signature changed again → log says `accessibility trusted: false`; the user must grant Accessibility + Screen Recording to /Applications/Chatot.app). Ad-hoc signing makes every rebuild drop TCC grants; a stable self-signed code-signing identity (`CHATOT_SIGN_IDENTITY`) would fix this — still open.
 - VS Code and Cursor: extension `ziangit.chatot-vscode` 0.1.4 installed (older 0.1.0–0.1.3 folders remain in ~/.vscode/extensions and ~/.cursor/extensions; harmless). Needs window reload after install.
 - `~/Library/Application Support/Code/User/settings.json` and the Cursor equivalent now contain `terminal.integrated.env.osx: {CLAUDE_CODE_DISABLE_MOUSE: "1"}` and `terminal.integrated.macOptionClickForcesSelection: true` (both added by Claude).
 - `~/.zshrc` ends with `export CLAUDE_CODE_DISABLE_MOUSE=1` (added by Claude, commented). Side effect: inside Claude Code the mouse wheel scrolls terminal scrollback and clicks do nothing; keyboard unchanged.

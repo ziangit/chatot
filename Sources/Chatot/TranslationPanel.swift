@@ -106,8 +106,8 @@ final class TranslationPanelController {
         panel.minSize = NSSize(width: 360, height: 140)
     }
 
-    func show() {
-        positionNearMouse()
+    func show(textLength: Int = 0) {
+        place(textLength: textLength)
         panel.orderFrontRegardless()
     }
 
@@ -117,7 +117,7 @@ final class TranslationPanelController {
     }
 
     func translate(text: String) {
-        start(status: "Translating \(text.count) characters…", isImage: false)
+        start(status: "Translating \(text.count) characters…", isImage: false, textLength: text.count)
         let translator = makeTranslator()
         currentTask = Task { [model] in
             guard let translator = translator else { return }
@@ -126,7 +126,7 @@ final class TranslationPanelController {
     }
 
     func translate(image: Data) {
-        start(status: "Reading image (\(image.count / 1024) KB)…", isImage: true)
+        start(status: "Reading image (\(image.count / 1024) KB)…", isImage: true, textLength: 600)
         let translator = makeTranslator()
         currentTask = Task { [model] in
             guard let translator = translator else { return }
@@ -134,10 +134,10 @@ final class TranslationPanelController {
         }
     }
 
-    private func start(status: String, isImage: Bool) {
+    private func start(status: String, isImage: Bool, textLength: Int) {
         currentTask?.cancel()
         model.segments = []; model.message = nil; model.status = status; model.isImage = isImage
-        show()
+        show(textLength: textLength)
     }
 
     private func makeTranslator() -> Translator? {
@@ -180,15 +180,69 @@ final class TranslationPanelController {
         }
     }
 
-    private func positionNearMouse() {
+    /// Put the panel where it does not cover the text being translated, and make it as large as that space allows.
+    /// The "avoid" rect is the selected text (Accessibility), else a band of the front window around the mouse.
+    private func place(textLength: Int) {
         guard !panel.isVisible || !model.pinned else { return }
         let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
-        guard let vf = screen?.visibleFrame else { return }
-        var origin = NSPoint(x: mouse.x + 12, y: mouse.y - panel.frame.height - 12)
-        origin.x = min(max(vf.minX, origin.x), vf.maxX - panel.frame.width)
-        origin.y = min(max(vf.minY, origin.y), vf.maxY - panel.frame.height)
-        panel.setFrameOrigin(origin)
+        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main else { return }
+        let vf = screen.visibleFrame
+        let m: CGFloat = 12
+        let selection = SelectionReader.axSelectionBounds()?.intersection(vf)
+        let window = SelectionReader.axFocusedWindowFrame()?.intersection(vf)
+        var avoid: NSRect
+        var how: String
+        if let sel = selection, !sel.isEmpty {
+            avoid = sel; how = "selection"
+        } else if let w = window, !w.isEmpty {
+            let lo = max(w.minY, mouse.y - 300), hi = min(w.maxY, mouse.y + 300)
+            avoid = NSRect(x: w.minX, y: lo, width: w.width, height: max(1, hi - lo)); how = "window band"
+        } else {
+            avoid = NSRect(x: vf.minX, y: max(vf.minY, mouse.y - 300), width: vf.width, height: min(600, vf.height)); how = "mouse band"
+        }
+        let minW: CGFloat = 380, minH: CGFloat = 200
+        let maxW = max(520, vf.width * 0.45)
+        // Candidate free regions around the avoid rect; sides first because the user reads left-to-right.
+        let regions: [(String, NSRect)] = [
+            ("right", NSRect(x: avoid.maxX + m, y: vf.minY, width: vf.maxX - avoid.maxX - m, height: vf.height)),
+            ("left", NSRect(x: vf.minX, y: vf.minY, width: avoid.minX - vf.minX - m, height: vf.height)),
+            ("below", NSRect(x: vf.minX, y: vf.minY, width: vf.width, height: avoid.minY - vf.minY - m)),
+            ("above", NSRect(x: vf.minX, y: avoid.maxY + m, width: vf.width, height: vf.maxY - avoid.maxY - m)),
+        ].filter { $0.1.width >= minW && $0.1.height >= minH }
+        let frame: NSRect
+        if let best = regions.max(by: { score($0.1) < score($1.1) }) {
+            let r = best.1
+            let w = min(r.width, maxW)
+            let h = min(r.height, max(minH, estimatedHeight(textLength: textLength, width: w)))
+            var x: CGFloat, y: CGFloat
+            switch best.0 {
+            case "right": x = r.minX; y = avoid.maxY - h
+            case "left": x = r.maxX - w; y = avoid.maxY - h
+            case "below": x = mouse.x < vf.midX ? r.maxX - w : r.minX; y = r.maxY - h
+            default: x = mouse.x < vf.midX ? r.maxX - w : r.minX; y = r.minY
+            }
+            x = min(max(r.minX, x), r.maxX - w); y = min(max(r.minY, y), r.maxY - h)
+            frame = NSRect(x: x, y: y, width: w, height: h)
+            how += " → \(best.0)"
+        } else {
+            // Nothing fits beside the text: dock to the screen edge away from the mouse, full height.
+            let w = max(minW, vf.width * 0.4)
+            frame = NSRect(x: mouse.x < vf.midX ? vf.maxX - w : vf.minX, y: vf.minY, width: w, height: vf.height)
+            how += " → dock"
+        }
+        Log.info("panel placed via \(how): \(Int(frame.width))×\(Int(frame.height)) at \(Int(frame.minX)),\(Int(frame.minY))")
+        panel.setFrame(frame, display: true)
+    }
+
+    private func score(_ r: NSRect) -> CGFloat { r.width * r.height }
+
+    /// Rough height for the translation (EN→ZH shrinks to ~60%), plus the original if it is shown.
+    private func estimatedHeight(textLength: Int, width: CGFloat) -> CGFloat {
+        let charsPerLine = max(10, (width - 24) / 15)
+        var chars = Double(textLength) * 0.65
+        if model.showOriginal { chars += Double(textLength) * 0.6 }
+        let lines = ceil(chars / charsPerLine) + Double(textLength / 300) + 1
+        return CGFloat(lines) * 22 + 70
     }
 
     private func copyAll() {

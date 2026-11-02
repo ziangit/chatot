@@ -25,6 +25,44 @@ enum SelectionReader {
         return nil
     }
 
+    /// Screen rect of the selected text in the focused element (Cocoa coordinates), when the app exposes it.
+    static func axSelectionBounds() -> NSRect? {
+        let system = AXUIElementCreateSystemWide()
+        var focused: AnyObject?
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success, let el = focused else { return nil }
+        let elem = el as! AXUIElement
+        var rangeVal: AnyObject?
+        guard AXUIElementCopyAttributeValue(elem, kAXSelectedTextRangeAttribute as CFString, &rangeVal) == .success, let rv = rangeVal else { return nil }
+        var range = CFRange()
+        guard AXValueGetValue(rv as! AXValue, .cfRange, &range), range.length > 0 else { return nil }
+        var boundsVal: AnyObject?
+        guard AXUIElementCopyParameterizedAttributeValue(elem, kAXBoundsForRangeParameterizedAttribute as CFString, rv, &boundsVal) == .success, let bv = boundsVal else { return nil }
+        var rect = CGRect.zero
+        guard AXValueGetValue(bv as! AXValue, .cgRect, &rect), rect.width > 0, rect.height > 0 else { return nil }
+        return flipped(rect)
+    }
+
+    /// Frame of the frontmost app's focused window (Cocoa coordinates).
+    static func axFocusedWindowFrame() -> NSRect? {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        var win: AnyObject?
+        guard AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &win) == .success, let w = win else { return nil }
+        var posV: AnyObject?, sizeV: AnyObject?
+        guard AXUIElementCopyAttributeValue(w as! AXUIElement, kAXPositionAttribute as CFString, &posV) == .success,
+              AXUIElementCopyAttributeValue(w as! AXUIElement, kAXSizeAttribute as CFString, &sizeV) == .success,
+              let p = posV, let sz = sizeV else { return nil }
+        var pt = CGPoint.zero, size = CGSize.zero
+        guard AXValueGetValue(p as! AXValue, .cgPoint, &pt), AXValueGetValue(sz as! AXValue, .cgSize, &size), size.width > 0 else { return nil }
+        return flipped(CGRect(origin: pt, size: size))
+    }
+
+    /// AX uses a top-left origin on the primary display; AppKit uses bottom-left.
+    static func flipped(_ r: CGRect) -> NSRect {
+        let h = NSScreen.screens.first?.frame.height ?? 0
+        return NSRect(x: r.minX, y: h - r.maxY, width: r.width, height: r.height)
+    }
+
     /// Simulate ⌘C, read the pasteboard, then restore its previous contents.
     static func copyFallback(_ completion: @escaping (Selection) -> Void) {
         let pb = NSPasteboard.general
