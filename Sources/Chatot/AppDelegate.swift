@@ -23,6 +23,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "translate":
             if let t = items.first(where: { $0.name == "text" })?.value, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { panel.translate(text: t) }
             else { panel.showMessage("chatot://translate needs a text parameter.") }
+        case "image":
+            // chatot://image?url=https://… (Chrome extension, right-click on an image): download, then translate.
+            guard let u = items.first(where: { $0.name == "url" })?.value, let imgURL = URL(string: u) else { panel.showMessage("chatot://image needs a url parameter."); return }
+            panel.showMessage("Fetching image…")
+            URLSession.shared.dataTask(with: imgURL) { [weak self] data, _, err in
+                DispatchQueue.main.async {
+                    guard let d = data, NSImage(data: d) != nil else { self?.panel.showMessage("Could not load image: \(err?.localizedDescription ?? "not an image")"); return }
+                    self?.panel.translate(image: RegionCapture.downscale(d, maxSide: 1600) ?? d)
+                }
+            }.resume()
         case "region": translateRegion()
         case "clipboard": translateClipboard()
         case "selection": translateSelection()

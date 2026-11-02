@@ -5,6 +5,7 @@ A macOS menubar app that translates whatever you point at, anywhere on screen: s
 
 ## Features
 - Right-click → Services → "Translate with Chatot" on selected text or an image (works in Terminal.app, iTerm2, Safari, Chrome, Finder, Preview, most native apps).
+- Chrome (and Chromium/Brave/Edge/Arc): a tiny extension adds top-level "Translate with Chatot" (selection) and "Translate image with Chatot" (image) to the right-click menu, bridged through a native-messaging host so no prompts. Loaded once via chrome://extensions → Load unpacked. Safari keeps Services ▸ and the floating 译 button.
 - Global hotkey translates the current selection in any app, including Electron apps where Services don't appear (Accessibility API, clipboard fallback).
 - Screen-region hotkey: drag a rectangle, text in it is translated (works on images, video frames, canvas apps, remote desktops).
 - macOS screenshots: after ⇧⌘3/4/5 (file saved) or "Copy Image" in the screenshot preview, a small card with the thumbnail and a "译 Translate this screenshot" button appears next to the mouse for 10 s; click to translate, × or any click elsewhere dismisses it. Can be turned off in Settings. Also: drag the screenshot thumbnail onto the menubar icon, or menubar → Translate Last Screenshot.

@@ -31,3 +31,6 @@ swift run chatot-tests                                   # unit tests (no XCTest
 Settings live in the menubar app (target language, provider order, models, API key in keychain). Glossary: `~/.config/chatot/glossary.txt` with `term = translation` lines. Log: `~/Library/Logs/chatot.log`.
 
 See `docs/ARCHITECTURE.md` for benchmarks and gotchas, `session-handoff.md` for status.
+
+## Chrome
+`scripts/install-chrome-extension.sh` registers the native-messaging bridge; then load `~/.config/chatot/chrome-extension` once via chrome://extensions (Developer mode → Load unpacked). Right-click → "Translate with Chatot" appears at the top level for selected text and images.
