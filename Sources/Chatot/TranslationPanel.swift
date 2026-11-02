@@ -88,6 +88,10 @@ final class TranslationPanelController {
     let model = PanelModel()
     private var panel: NSPanel!
     private var currentTask: Task<Void, Never>?
+    /// Where the last placement allowed the panel to grow: screen area and whether it should extend upward.
+    private var growsUp = false
+    private var screenArea = NSRect.zero
+    private var lastFit = Date.distantPast
 
     init() {
         let view = PanelView(model: model, onCopy: { [weak self] in self?.copyAll() }, onPin: { [weak self] in self?.togglePin() }, onClose: { [weak self] in self?.panel.orderOut(nil) })
@@ -114,6 +118,7 @@ final class TranslationPanelController {
     func showMessage(_ text: String) {
         model.segments = []; model.message = text; model.status = "Chatot"; model.isImage = false
         show()
+        fitToContent(force: true)
     }
 
     func translate(text: String) {
@@ -163,10 +168,12 @@ final class TranslationPanelController {
         case .delta(let i, let t):
             guard i < model.segments.count else { return }
             model.segments[i].output += t
+            fitToContent(force: false)
         case .completed(let i, let text, let provider, let secs):
             guard i < model.segments.count else { return }
             let s = model.segments[i]; s.output = text; s.done = true; s.error = nil
             if provider != "passthrough" { s.note = String(format: "%@ · %.1fs", provider, secs) }
+            fitToContent(force: true)
         case .retrying(let i, let p, let r):
             guard i < model.segments.count else { return }
             model.segments[i].note = "Retrying after \(p): \(r)"
@@ -177,6 +184,7 @@ final class TranslationPanelController {
         case .finished(let secs):
             let failed = model.segments.filter { $0.error != nil }.count
             model.status = failed == 0 ? String(format: "Done in %.1fs", secs) : String(format: "Done in %.1fs, %d failed", secs, failed)
+            fitToContent(force: true)
         }
     }
 
@@ -223,15 +231,53 @@ final class TranslationPanelController {
             }
             x = min(max(r.minX, x), r.maxX - w); y = min(max(r.minY, y), r.maxY - h)
             frame = NSRect(x: x, y: y, width: w, height: h)
+            growsUp = best.0 == "above"
             how += " → \(best.0)"
         } else {
+            growsUp = false
             // Nothing fits beside the text: dock to the screen edge away from the mouse, full height.
             let w = max(minW, vf.width * 0.4)
             frame = NSRect(x: mouse.x < vf.midX ? vf.maxX - w : vf.minX, y: vf.minY, width: w, height: vf.height)
             how += " → dock"
         }
+        screenArea = vf
         Log.info("panel placed via \(how): \(Int(frame.width))×\(Int(frame.height)) at \(Int(frame.minX)),\(Int(frame.minY))")
         panel.setFrame(frame, display: true)
+    }
+
+    /// Grow the panel so the whole translation is visible without scrolling: measure the real text at the current
+    /// width, extend away from the source text first, and spill the other way only when the screen runs out.
+    private func fitToContent(force: Bool) {
+        guard panel.isVisible, !model.pinned, !screenArea.isEmpty else { return }
+        if !force && Date().timeIntervalSince(lastFit) < 0.25 { return }
+        lastFit = Date()
+        let m: CGFloat = 12
+        let width = panel.frame.width - 24
+        var needed: CGFloat = 34 + 1 + 24   // header, divider, content padding
+        let opts: NSString.DrawingOptions = [.usesLineFragmentOrigin, .usesFontLeading]
+        func h(_ text: String, size: CGFloat, mono: Bool = false) -> CGFloat {
+            guard !text.isEmpty else { return 0 }
+            let font = mono ? NSFont.monospacedSystemFont(ofSize: size, weight: .regular) : NSFont.systemFont(ofSize: size)
+            return ceil((text as NSString).boundingRect(with: NSSize(width: width, height: .greatestFiniteMagnitude), options: opts, attributes: [.font: font]).height)
+        }
+        if let msg = model.message { needed += h(msg, size: 13) + 24 }
+        for seg in model.segments {
+            if model.showOriginal && !model.isImage && !seg.passthrough { needed += h(seg.source, size: 12) + 4 }
+            needed += seg.error != nil ? 20 : (seg.output.isEmpty ? 20 : h(seg.output, size: seg.passthrough ? 12 : 14, mono: seg.passthrough))
+            needed += seg.note != nil && !seg.done ? 16 : 0
+            needed += 10
+        }
+        needed = ceil(needed * 1.04) + 8
+        let maxH = screenArea.height - 2 * m
+        let target = min(max(needed, panel.minSize.height), maxH)
+        guard target > panel.frame.height + 2 else { return }   // only grow during a translation
+        var f = panel.frame
+        if growsUp { f.origin.y = f.minY } else { f.origin.y = f.maxY - target }
+        f.size.height = target
+        if f.minY < screenArea.minY + m { f.origin.y = screenArea.minY + m }
+        if f.maxY > screenArea.maxY - m { f.origin.y = screenArea.maxY - m - target }
+        Log.info("panel grown to \(Int(f.width))×\(Int(f.height)) (needed \(Int(needed)), \(growsUp ? "up" : "down"))")
+        panel.setFrame(f, display: true, animate: false)
     }
 
     private func score(_ r: NSRect) -> CGFloat { r.width * r.height }

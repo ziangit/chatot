@@ -1,6 +1,6 @@
 # Session handoff
 
-**Current phase:** Phases 1–5 implemented and installed (v0.1.0, all pushed). 2026-11-02: select → right-click → Translate in the Claude Code terminal CONFIRMED working by the user (log: `url event … (950 chars)`, whole block translated). Smart panel placement added (avoids the selected text, grows with text length).
+**Current phase:** Phases 1–5 implemented and installed (v0.1.0, all pushed). 2026-11-02: select → right-click → Translate in the Claude Code terminal CONFIRMED working by the user (log: `url event … (950 chars)`, whole block translated). Smart panel placement added (avoids the selected text) and the panel grows to fit the translation as it streams (user complained of having to drag to see the full text; fixed and verified with a snapshot).
 **Next concrete step:** User grants Accessibility and Screen Recording to /Applications/Chatot.app (they were in the System Settings file picker; the app was rebuilt afterwards, so the grant must be done/redone AFTER the 07:40 relaunch). Then verify: panel lands beside/below the selection and not on it (log `panel placed via selection|window band|mouse band`); ⌥⌘T; ⌥⌘R. Then Phase 6.
 
 ## UX rule from the user (2026-11-01, non-negotiable)
