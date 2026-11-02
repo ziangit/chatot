@@ -7,7 +7,7 @@ A macOS menubar app that translates whatever you point at, anywhere on screen: s
 - Right-click → Services → "Translate with Chatot" on selected text or an image (works in Terminal.app, iTerm2, Safari, Chrome, Finder, Preview, most native apps).
 - Global hotkey translates the current selection in any app, including Electron apps where Services don't appear (Accessibility API, clipboard fallback).
 - Screen-region hotkey: drag a rectangle, text in it is translated (works on images, video frames, canvas apps, remote desktops).
-- macOS screenshots: after ⇧⌘3/4/5 (file saved) or "Copy Image" in the screenshot preview, a floating "译 Translate screenshot" button appears bottom-right for 15 s; click to translate. Also: drag the screenshot thumbnail onto the menubar icon, or menubar → Translate Last Screenshot.
+- macOS screenshots: after ⇧⌘3/4/5 (file saved) or "Copy Image" in the screenshot preview, a small card with the thumbnail and a "译 Translate this screenshot" button appears next to the mouse for 10 s; click to translate, × or any click elsewhere dismisses it. Can be turned off in Settings. Also: drag the screenshot thumbnail onto the menubar icon, or menubar → Translate Last Screenshot.
 - Floating, non-activating panel with streaming output, Copy, Pin.
 - Progressive rendering: long text is split into paragraphs, translated in parallel, shown as each lands. First text in ~1-2 s.
 - Providers: Claude Haiku 5.5 via Messages API (primary), Codex CLI with ChatGPT login (fallback), Claude CLI (fallback), local Ollama (optional offline tier).

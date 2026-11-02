@@ -10,6 +10,7 @@ final class ScreenshotWatcher {
     private let panel: NSPanel
     private let button: NSButton
     private var hideTimer: Timer?
+    private var clickMonitor: Any?
     private var pending: Data?
     private var pollTimer: Timer?
     private var lastChangeCount = NSPasteboard.general.changeCount
@@ -48,7 +49,13 @@ final class ScreenshotWatcher {
         button.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         button.keyEquivalent = "\r"
         button.frame = NSRect(x: 10, y: 8, width: w - 20, height: rowH - 8)
-        content.addSubview(thumb); content.addSubview(button)
+        let close = NSButton(image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Dismiss")!, target: nil, action: nil)
+        close.isBordered = false
+        close.contentTintColor = .secondaryLabelColor
+        close.frame = NSRect(x: w - 30, y: thumbH + rowH + 22 - 30, width: 24, height: 24)
+        close.target = self
+        close.action = #selector(dismiss)
+        content.addSubview(thumb); content.addSubview(button); content.addSubview(close)
         panel.contentView = content
         button.target = self
         button.action = #selector(clicked)
@@ -60,6 +67,11 @@ final class ScreenshotWatcher {
 
     func start() {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.pollClipboard() }
+        // Any click outside the card dismisses it, like a notification.
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            guard let self = self, self.panel.isVisible else { return }
+            if !NSMouseInRect(NSEvent.mouseLocation, self.panel.frame, false) { self.hide() }
+        }
         // The first read of ~/Desktop triggers the "access your Desktop folder" permission dialog, and the open()
         // blocks until the user answers. Never do that on the main thread.
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -146,7 +158,7 @@ final class ScreenshotWatcher {
         panel.setFrameOrigin(origin)
         panel.orderFrontRegardless()
         hideTimer?.invalidate()
-        hideTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in self?.hide() }
+        hideTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in self?.hide() }
         Log.info("screenshot card shown at \(Int(origin.x)),\(Int(origin.y))")
     }
 
@@ -154,6 +166,8 @@ final class ScreenshotWatcher {
         hideTimer?.invalidate(); hideTimer = nil
         if panel.isVisible { panel.orderOut(nil) }
     }
+
+    @objc private func dismiss() { pending = nil; hide() }
 
     @objc private func clicked() {
         let d = pending
