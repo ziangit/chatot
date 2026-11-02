@@ -1,10 +1,22 @@
 # Session handoff
 
-**Current phase:** Phases 1–5 implemented and installed (v0.1.0); awaiting the user's hands-on check of the two permission-gated paths.
-**Next concrete step:** User reloads VS Code/Cursor window (extension 0.1.4 installed), opens a NEW terminal, starts claude, drags a block, right-clicks → 'Translate with Chatot' and confirms the whole block (not one word) is translated; tries ⌥⌘T in Terminal/VS Code/Chrome (grants Accessibility when prompted) and ⌥⌘R (grants Screen Recording), reports anything off. Then Phase 6 polish: "Ask about this" action, per-app overrides, language auto-detect, launch at login, hotkey customization, glossary auto-consistency across chunks.
+**Current phase:** Phases 1–5 implemented and installed (v0.1.0, all pushed, last commit 5e2452e). Session ended 2026-11-01 ~23:30 right after fixing the VS Code terminal selection path; user is restarting to pick up the new env var.
+**Next concrete step:** In the NEW session, first ask the user whether select → right-click → "Translate with Chatot" in the Claude Code terminal now translates the whole block (the restart was needed so `CLAUDE_CODE_DISABLE_MOUSE=1` takes effect; check with `echo $CLAUDE_CODE_DISABLE_MOUSE` in their terminal and `tail ~/Library/Logs/chatot.log` for the `url event: chatot://translate (N chars)` length). If it works, move to Phase 6; if not, debug from the log before touching anything else. Then confirm ⌥⌘T in Terminal/VS Code/Chrome and ⌥⌘R (Screen Recording prompt).
+
+## UX rule from the user (2026-11-01, non-negotiable)
+"I just want select, right click, and translate." No modifier keys, no "press ⌘C first", no hints telling the user to do something different. If a path cannot deliver that, fix the environment or the app, not the user's habits.
+
+## State of the user's machine (things a fresh session cannot see in the repo)
+- `/Applications/Chatot.app` installed via `scripts/build-app.sh`; menubar-only; Accessibility granted at some point after 22:52 (the 译 button appeared), Screen Recording NOT yet granted.
+- VS Code and Cursor: extension `ziangit.chatot-vscode` 0.1.4 installed (older 0.1.0–0.1.3 folders remain in ~/.vscode/extensions and ~/.cursor/extensions; harmless). Needs window reload after install.
+- `~/Library/Application Support/Code/User/settings.json` and the Cursor equivalent now contain `terminal.integrated.env.osx: {CLAUDE_CODE_DISABLE_MOUSE: "1"}` and `terminal.integrated.macOptionClickForcesSelection: true` (both added by Claude).
+- `~/.zshrc` ends with `export CLAUDE_CODE_DISABLE_MOUSE=1` (added by Claude, commented). Side effect: inside Claude Code the mouse wheel scrolls terminal scrollback and clicks do nothing; keyboard unchanged.
+- `~/.config/chatot/.env` holds the API key copy; `.env` in the repo is git-ignored.
+- Ollama 0.40 with qwen3:8b / qwen3:4b installed (optional tier).
+- Folder trust for the chatot repo was accepted by Claude's pty test launch of `claude` (it was already the user's project).
 
 ## Done so far (2026-11-01)
-- Git repo initialized on `main`, remote `origin` = https://github.com/ziangit/chatot (remote is empty, nothing pushed).
+- Git repo on `main`, remote `origin` = https://github.com/ziangit/chatot, 12 commits pushed as of 2026-11-01 23:30.
 - Policy verified: subscription OAuth may only be used by the unmodified CLIs; API key is the sanctioned path. Max plan includes $100/month API credits (claim via claude.ai Settings > Billing). User's Console org already holds ~$295 credits.
 - Benchmarked Claude CLI (Haiku, Fable), Codex CLI (gpt-6-astra, gpt-6-luna, gpt-reserve, gpt-6.1-sol), local Qwen3 8B/4B via Ollama, Apple Vision OCR, and model vision. Numbers in docs/ARCHITECTURE.md.
 - Translation prompt shortened and tested (prompts/translate.md); screenshot prompt tested (prompts/screenshot.md).
@@ -19,7 +31,16 @@
 - 2026-11-01 later: app moved to /Applications with icon; `chatot://` URL scheme verified; VS Code extension packaged and installed into VS Code and Cursor (needs window reload).
 - 2026-11-01 later: floating 译 button on selection (SelectionWatcher) added; app prompts for Accessibility at launch (log showed trusted: false until granted).
 - 2026-11-01 late: first human right-click test in the VS Code terminal translated only "mouse"→"鼠标". Cause: VS Code selects the word under the cursor on right-click, so `terminal.selection` was that one word while Claude Code's TUI had copied the real block to the clipboard. Extension 0.1.2 prefers the clipboard when the selection is a lone word contained in longer clipboard text (commit fd54c22), but that did not help: VS Code has no OSC 52 support so Claude Code's copy never lands. Fix: `CLAUDE_CODE_DISABLE_MOUSE=1` (Code/Cursor `terminal.integrated.env.osx` + ~/.zshrc) stops Claude Code capturing the mouse, so a plain drag is a native selection and select → right-click → Translate works. Needs a new terminal + new claude session. Extension 0.1.4 has no heuristics.
-- NOT yet exercised by a human: ⌥⌘T selection reading (needs Accessibility grant), ⌥⌘R region capture (needs Screen Recording grant), the Services menu item clicked from a real right-click, Settings window, Pin/Copy buttons.
+- Reproduced by the user twice (screenshots): right-click in the Claude Code pane translated "mouse"→"鼠标" and "so"→"所以" (one word). Log lines `url event: chatot://translate (29 chars)` / `(26 chars)` = the URL carried only that word.
+- NOT yet exercised by a human: the fixed select → right-click path after restart, ⌥⌘T selection reading, ⌥⌘R region capture (needs Screen Recording grant), the Services menu item in a native app, Settings window, Pin/Copy buttons.
+
+## Phase 6 backlog (after the user confirms the terminal path)
+- "Ask about this" action (separate from translate; never mix into the translation prompt).
+- Language auto-detect (ZH source → EN target) and target-language quick switch in the panel.
+- Launch at login; hotkey customization; per-app overrides.
+- Glossary auto-consistency across chunks (first chunk's terms fed to later chunks).
+- Safari/Chrome: the floating 译 button exists; decide whether an inline bilingual page mode (browser extension) is worth it.
+- Code signing decision (ad-hoc re-prompts Accessibility after every rebuild).
 
 ## Phase plan
 1. DONE Scaffold: Swift package, menubar app, settings, `.env`/keychain loading.
