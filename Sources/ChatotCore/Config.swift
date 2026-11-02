@@ -8,8 +8,8 @@ public struct Config: Equatable {
     /// "claude" | "chatgpt" | "deepseek"
     public var provider: String = "claude"
     public var claudeModel: String = "claude-haiku-5-5"
-    public var openaiModel: String = "gpt-5-mini"
-    public var deepseekModel: String = "deepseek-chat"
+    public var openaiModel: String = "gpt-6-luna"
+    public var deepseekModel: String = "deepseek-flash"
     public var targetLanguage: String = "Simplified Chinese"
     public var maxConcurrency: Int = 6
     public var chunkTargetChars: Int = 700

@@ -27,9 +27,11 @@ struct ConfigTests {
         expect(claude.map(\.id) == ["claude-api"] || claude.map(\.id) == ["claude"])
         let gpt = Translator.makeProviders(config: Config.load(environment: ["CHATOT_PROVIDER": "chatgpt", "OPENAI_API_KEY": "k"]))
         expect(gpt.map(\.id) == ["chatgpt"] && gpt.first?.supportsImages == true)
-        let ds = Translator.makeProviders(config: Config.load(environment: ["CHATOT_PROVIDER": "deepseek", "DEEPSEEK_API_KEY": "k", "CHATOT_DEEPSEEK_MODEL": "deepseek-reasoner"]))
+        let ds = Translator.makeProviders(config: Config.load(environment: ["CHATOT_PROVIDER": "deepseek", "DEEPSEEK_API_KEY": "k", "CHATOT_DEEPSEEK_MODEL": "deepseek-v4-pro"]))
         expect(ds.map(\.id) == ["deepseek"] && ds.first?.supportsImages == false)
-        expect((ds.first as? OpenAICompatibleProvider)?.model == "deepseek-reasoner")
+        expect((ds.first as? OpenAICompatibleProvider)?.model == "deepseek-v4-pro")
+        let defaults = Config.load(environment: [:])
+        expect(defaults.openaiModel == "gpt-6-luna" && defaults.deepseekModel == "deepseek-flash" && defaults.claudeModel == "claude-haiku-5-5")
         let none = Translator.makeProviders(config: Config.load(environment: ["CHATOT_PROVIDER": "chatgpt"]))
         expect(none.isEmpty)
     }

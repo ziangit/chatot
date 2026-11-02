@@ -8,7 +8,7 @@
 - 2026-11-02: "how many functions are not asked by me? Just keep my intended function." Do not add features, menu items, hotkeys, fallbacks or prompts that were not requested. API keys only (Claude by default; ChatGPT/DeepSeek options were requested 2026-11-02).
 
 ## What exists now
-- Chatot.app (menubar: pixel Chatot icon; Pause / Settings / Quit). Settings: Language (System/English/中文), target language, Provider picker (Claude / ChatGPT / DeepSeek) with model + key per provider, screenshot toggle. All UI strings via `L()` in `L10n.swift`. Triggers: Services item (text + image), `chatot://translate?text=` and `chatot://image?url=` URL scheme, screenshot card (clipboard image or new file in the screenshot folder).
+- Chatot.app (menubar: pixel Chatot icon; Pause / Settings / Quit). Settings: Language (System/English/中文), target language, Provider picker (Claude / ChatGPT / DeepSeek) with a model dropdown + key per provider, target-language dropdown, screenshot toggle. All UI strings via `L()` in `L10n.swift`. Triggers: Services item (text + image), `chatot://translate?text=` and `chatot://image?url=` URL scheme, screenshot card (clipboard image or new file in the screenshot folder).
 - Panel: placed off the selection (mouse band), grows with content, native text view (select, ⌘C, Original toggle, Copy, Close), screenshot output shows translations only.
 - VS Code/Cursor extension 0.2.1 (`vscode-extension/`): terminal/editor right-click items only, localized (nls), installed in both.
 - Chrome extension 0.2.0 (`chrome-extension/`, loaded unpacked by the user, ID mhkpkmkbjfdikhgjlnkfakkdhoennoai, now with `_locales` en/zh_CN and the pixel icon) + native-messaging host registered for Chrome/Chromium/Brave/Edge/Arc. Needs one reload by the user.

@@ -7,15 +7,27 @@ struct SettingsView: View {
     @AppStorage(AppConfig.Keys.targetLanguage) var targetLanguage = "Simplified Chinese"
     @AppStorage(AppConfig.Keys.provider) var provider = "claude"
     @AppStorage(AppConfig.Keys.claudeModel) var claudeModel = "claude-haiku-5-5"
-    @AppStorage(AppConfig.Keys.openaiModel) var openaiModel = "gpt-5-mini"
-    @AppStorage(AppConfig.Keys.deepseekModel) var deepseekModel = "deepseek-chat"
+    @AppStorage(AppConfig.Keys.openaiModel) var openaiModel = "gpt-6-luna"
+    @AppStorage(AppConfig.Keys.deepseekModel) var deepseekModel = "deepseek-flash"
     @AppStorage(ScreenshotWatcher.defaultsKey) var screenshotButton = true
     @State var apiKey = ""
     @State var saved = ""
     var onLanguageChange: () -> Void
 
+    static let languages = ["Simplified Chinese", "Traditional Chinese", "English", "Japanese", "Korean", "French", "German", "Spanish"]
+    static let models: [String: [String]] = [
+        "claude": ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"],
+        "chatgpt": ["gpt-6-luna", "gpt-6.1-terra", "gpt-6.1-sol", "gpt-6-astra"],
+        "deepseek": ["deepseek-flash", "deepseek-v4-pro"],
+    ]
     var keyAccount: String { provider == "chatgpt" ? "OPENAI_API_KEY" : provider == "deepseek" ? "DEEPSEEK_API_KEY" : "ANTHROPIC_API_KEY" }
     var modelBinding: Binding<String> { provider == "chatgpt" ? $openaiModel : provider == "deepseek" ? $deepseekModel : $claudeModel }
+    var modelList: [String] { Self.models[provider] ?? Self.models["claude"]! }
+    /// A stored value that is no longer in the list (renamed model, old default) would leave the picker blank.
+    func normalize() {
+        if !modelList.contains(modelBinding.wrappedValue) { modelBinding.wrappedValue = modelList[0] }
+        if !Self.languages.contains(targetLanguage) { targetLanguage = Self.languages[0] }
+    }
 
     var body: some View {
         Form {
@@ -24,15 +36,19 @@ struct SettingsView: View {
                     Text(L("System")).tag("system"); Text("English").tag("en"); Text("中文").tag("zh-Hans")
                 }
                 .onChange(of: language) { _, _ in onLanguageChange() }
-                TextField(L("Target language"), text: $targetLanguage)
+                Picker(L("Target language"), selection: $targetLanguage) {
+                    ForEach(Self.languages, id: \.self) { Text(L($0)).tag($0) }
+                }
                 Text(L("target_hint")).font(.caption).foregroundStyle(.secondary)
             }
             Section(L("Provider")) {
                 Picker(L("Provider"), selection: $provider) {
                     Text("Claude").tag("claude"); Text("ChatGPT").tag("chatgpt"); Text("DeepSeek").tag("deepseek")
                 }
-                .onChange(of: provider) { _, _ in apiKey = Keychain.read(keyAccount) ?? ""; saved = "" }
-                TextField(L("Model"), text: modelBinding)
+                .onChange(of: provider) { _, _ in apiKey = Keychain.read(keyAccount) ?? ""; saved = ""; normalize() }
+                Picker(L("Model"), selection: modelBinding) {
+                    ForEach(modelList, id: \.self) { Text($0).tag($0) }
+                }
                 SecureField(L("API key"), text: $apiKey)
                 HStack {
                     Button(L("Save to Keychain")) { saved = Keychain.write(keyAccount, apiKey) ? L("Saved") : L("Keychain error") }
@@ -51,7 +67,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 520, height: 560)
-        .onAppear { apiKey = Keychain.read(keyAccount) ?? "" }
+        .onAppear { apiKey = Keychain.read(keyAccount) ?? ""; normalize() }
     }
 }
 
