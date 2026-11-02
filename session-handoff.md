@@ -1,7 +1,7 @@
 # Session handoff
 
-**Current phase:** v0.3 (2026-11-02) — pixel Chatot icon, provider options (Claude default / ChatGPT / DeepSeek), English + Chinese UI. Built, installed, relaunched, pushed.
-**Next concrete step:** User reloads the Chrome extension once (chrome://extensions ▸ ↻, manifest changed for i18n) and checks the new icon and Settings ▸ Language. Then exercises the four paths and reports: (1) right-click in the Claude Code terminal → Translate with Chatot; (2) right-click in Chrome → Translate with Chatot / Translate image with Chatot; (3) right-click in a native app → Services ▸ Translate with Chatot; (4) take a screenshot → card → click. Then stop adding features unless asked.
+**Current phase:** v0.3 (2026-11-02) — pixel Chatot icon, provider options (Claude default / ChatGPT / DeepSeek), English + Chinese UI. Built, installed, relaunched, pushed. GitHub release v0.3.0 (app zip, .vsix, Chrome extension zip) and bilingual READMEs for the Xiaohongshu post.
+**Next concrete step:** User posts on Xiaohongshu / V2EX / 即刻 linking the release. Before that, the user reloads the Chrome extension once (chrome://extensions ▸ ↻, manifest changed for i18n) and checks the new icon and Settings ▸ Language. Then exercises the four paths and reports: (1) right-click in the Claude Code terminal → Translate with Chatot; (2) right-click in Chrome → Translate with Chatot / Translate image with Chatot; (3) right-click in a native app → Services ▸ Translate with Chatot; (4) take a screenshot → card → click. Then stop adding features unless asked.
 
 ## UX rules from the user (non-negotiable)
 - "I just want select, right click, and translate." No modifier keys, no "press ⌘C first", no hints telling the user to do something different.
@@ -26,3 +26,6 @@
 
 ## Open questions
 - None from the user. Do not reopen Safari inline translation, hotkeys or fallbacks unless asked.
+
+## Releasing
+`scripts/release.sh <version>` builds the app, re-signs a copy ad hoc, zips it with the .vsix and the Chrome extension (plus install.sh), tags and creates the GitHub release. Bump `CFBundleShortVersionString` in scripts/Info.plist first. Release apps are not notarized; the README tells users to clear quarantine.

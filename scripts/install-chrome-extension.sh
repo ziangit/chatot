@@ -2,7 +2,9 @@
 # Copies the Chrome extension to a stable path and registers the native-messaging host for Chrome.
 # After this, load it once: chrome://extensions → Developer mode → Load unpacked → ~/.config/chatot/chrome-extension
 set -euo pipefail
-SRC="$(cd "$(dirname "$0")/.." && pwd)/chrome-extension"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# Works from the repo (scripts/ next to chrome-extension/) and from the release zip (install.sh next to manifest.json).
+if [ -f "$HERE/manifest.json" ]; then SRC="$HERE"; else SRC="$(cd "$HERE/.." && pwd)/chrome-extension"; fi
 DST="$HOME/.config/chatot/chrome-extension"
 mkdir -p "$DST"
 cp "$SRC"/manifest.json "$SRC"/background.js "$SRC"/icon.png "$SRC"/chrome-host.py "$DST"/
