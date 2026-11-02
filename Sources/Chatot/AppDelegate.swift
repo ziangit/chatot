@@ -29,7 +29,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.showMessage("Fetching image…")
             URLSession.shared.dataTask(with: imgURL) { [weak self] data, _, err in
                 DispatchQueue.main.async {
-                    guard let d = data, NSImage(data: d) != nil else { self?.panel.showMessage("Could not load image: \(err?.localizedDescription ?? "not an image")"); return }
+                    guard let d = data, NSImage(data: d) != nil else {
+                        Log.error("image url failed: \(err?.localizedDescription ?? "not an image") (\(data?.count ?? 0) bytes)")
+                        self?.panel.showMessage("Could not load image: \(err?.localizedDescription ?? "not an image")"); return
+                    }
+                    Log.info("image url fetched (\(d.count / 1024) KB)")
                     self?.panel.translate(image: RegionCapture.downscale(d, maxSide: 1600) ?? d)
                 }
             }.resume()
