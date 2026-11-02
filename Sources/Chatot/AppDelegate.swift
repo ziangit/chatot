@@ -30,8 +30,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    static var paused: Bool {
+        get { UserDefaults.standard.bool(forKey: "paused") }
+        set { UserDefaults.standard.set(newValue, forKey: "paused") }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.info("Chatot launched, bundle \(Bundle.main.bundleIdentifier ?? "none"), path \(Bundle.main.bundlePath)")
+        installEditMenu()
         services.panel = panel
         NSApp.servicesProvider = services
         NSUpdateDynamicServices()
@@ -41,8 +47,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         selectionWatcher.start()
         screenshotWatcher.onTranslate = { [weak self] data in self?.panel.translate(image: data) }
         screenshotWatcher.start()
-        // Both the selection button and ⌥⌘T read the selection through Accessibility; ask once at launch.
-        let trusted = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        // Accessibility powers ⌥⌘T, the 译 button and panel placement. Ask once per install, never on every launch.
+        let trusted = AXIsProcessTrusted()
+        if !trusted && !UserDefaults.standard.bool(forKey: "axPrompted") {
+            UserDefaults.standard.set(true, forKey: "axPrompted")
+            _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        }
         Log.info("accessibility trusted: \(trusted)")
         if let arg = CommandLine.arguments.dropFirst().first(where: { $0.hasPrefix("--translate=") }) {
             // Dev hook: `Chatot --translate="text"` opens the panel immediately.
@@ -70,6 +80,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Translate Clipboard", action: #selector(translateClipboard), keyEquivalent: "")
         menu.addItem(withTitle: "Translate Last Screenshot", action: #selector(translateLastScreenshot), keyEquivalent: "")
         menu.addItem(.separator())
+        pauseItem = menu.addItem(withTitle: "Pause Chatot", action: #selector(togglePause), keyEquivalent: "")
+        if !AXIsProcessTrusted() {
+            menu.addItem(withTitle: "Grant Accessibility Access…", action: #selector(openAccessibilitySettings), keyEquivalent: "")
+        }
         menu.addItem(withTitle: "Show Panel", action: #selector(showPanel), keyEquivalent: "")
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(withTitle: "Open Log", action: #selector(openLog), keyEquivalent: "")
@@ -77,6 +91,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Quit Chatot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         for item in menu.items where item.action != #selector(NSApplication.terminate(_:)) { item.target = self }
         statusItem.menu = menu
+        applyPauseState()
+    }
+
+    var pauseItem: NSMenuItem?
+
+    /// Pause = no automatic pop-ups (译 button, screenshot card) and hotkeys ignored. Explicit right-click / URL
+    /// requests still work. Quit is in the same menu for turning it off entirely.
+    @objc func togglePause() { Self.paused.toggle(); applyPauseState() }
+
+    private func applyPauseState() {
+        let paused = Self.paused
+        pauseItem?.title = paused ? "Resume Chatot" : "Pause Chatot"
+        statusItem.button?.appearsDisabled = paused
+        if paused { selectionWatcher.hide(); screenshotWatcher.hide() }
+        Log.info("paused: \(paused)")
+    }
+
+    @objc func openAccessibilitySettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+
+    /// Menuless accessory apps get no ⌘C/⌘A/⌘V; an Edit menu (never shown) wires the key equivalents.
+    private func installEditMenu() {
+        let main = NSMenu()
+        let appItem = NSMenuItem(); main.addItem(appItem)
+        let appMenu = NSMenu(); appItem.submenu = appMenu
+        appMenu.addItem(withTitle: "Quit Chatot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let editItem = NSMenuItem(); main.addItem(editItem)
+        let edit = NSMenu(title: "Edit"); editItem.submenu = edit
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        NSApp.mainMenu = main
     }
 
     func registerHotKeys() {
@@ -87,6 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func translateSelection() {
+        if Self.paused { return }
         SelectionReader.readSelection { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
@@ -99,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func translateRegion() {
+        if Self.paused { return }
         RegionCapture.capture { [weak self] data in
             DispatchQueue.main.async {
                 if let d = data { self?.panel.translate(image: d) } else { Log.info("region capture cancelled") }

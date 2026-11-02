@@ -20,7 +20,77 @@ final class PanelModel: ObservableObject {
     @Published var isImage = false
     @Published var showOriginal = UserDefaults.standard.bool(forKey: AppConfig.Keys.showOriginal)
     @Published var pinned = false
-    var fullText: String { segments.map { $0.output }.joined(separator: "\n\n") }
+    @Published var rendered = NSAttributedString()
+    var fullText: String { segments.map { PanelModel.translationOnly($0.output, image: isImage) }.joined(separator: "\n\n") }
+
+    /// Screenshot output is "original → translation" per line; keep only the translation.
+    static func translationOnly(_ text: String, image: Bool) -> String {
+        guard image else { return text }
+        return text.split(separator: "\n", omittingEmptySubsequences: false).map { line -> String in
+            if let r = line.range(of: " → ", options: .backwards) { return String(line[r.upperBound...]) }
+            return String(line)
+        }.joined(separator: "\n")
+    }
+
+    /// Rebuild the attributed text shown in the panel from the segment states.
+    func render() {
+        let out = NSMutableAttributedString()
+        let body: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 14), .foregroundColor: NSColor.labelColor]
+        let mono: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular), .foregroundColor: NSColor.labelColor]
+        let dim: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor]
+        let note: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 10), .foregroundColor: NSColor.tertiaryLabelColor]
+        let red: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.systemRed]
+        if let m = message { out.append(NSAttributedString(string: m, attributes: dim)) }
+        for (i, seg) in segments.enumerated() {
+            if i > 0 || message != nil { out.append(NSAttributedString(string: "\n\n", attributes: body)) }
+            if let e = seg.error { out.append(NSAttributedString(string: "⚠️ " + e, attributes: red)); continue }
+            if isImage {
+                // Lines are "original → translation"; show the translation, and the original above it when asked.
+                for (j, line) in seg.output.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+                    if j > 0 { out.append(NSAttributedString(string: "\n", attributes: body)) }
+                    if let r = line.range(of: " → ", options: .backwards) {
+                        if showOriginal { out.append(NSAttributedString(string: String(line[..<r.lowerBound]) + "\n", attributes: dim)) }
+                        out.append(NSAttributedString(string: String(line[r.upperBound...]), attributes: body))
+                    } else {
+                        out.append(NSAttributedString(string: String(line), attributes: body))
+                    }
+                }
+            } else {
+                if showOriginal && !seg.passthrough { out.append(NSAttributedString(string: seg.source + "\n", attributes: dim)) }
+                out.append(NSAttributedString(string: seg.output, attributes: seg.passthrough ? mono : body))
+            }
+            if seg.output.isEmpty && !seg.done { out.append(NSAttributedString(string: seg.note ?? "Translating…", attributes: dim)) }
+            else if let n = seg.note, !seg.done { out.append(NSAttributedString(string: "  " + n, attributes: note)) }
+        }
+        rendered = out
+    }
+}
+
+/// Native text view inside the SwiftUI panel: selectable, ⌘C / ⌘A work (the app has an Edit menu), scrolls.
+struct SelectableText: NSViewRepresentable {
+    var text: NSAttributedString
+    func makeNSView(context: Context) -> NSScrollView {
+        let tv = NSTextView()
+        tv.isEditable = false; tv.isSelectable = true; tv.isRichText = true
+        tv.drawsBackground = false
+        tv.textContainerInset = NSSize(width: 12, height: 12)
+        tv.textContainer?.widthTracksTextView = true
+        tv.isVerticallyResizable = true; tv.isHorizontallyResizable = false
+        tv.autoresizingMask = [.width]
+        tv.textContainer?.lineFragmentPadding = 0
+        let sv = NSScrollView()
+        sv.documentView = tv
+        sv.hasVerticalScroller = true; sv.autohidesScrollers = true; sv.drawsBackground = false
+        return sv
+    }
+    func updateNSView(_ sv: NSScrollView, context: Context) {
+        guard let tv = sv.documentView as? NSTextView, let storage = tv.textStorage else { return }
+        if !storage.isEqual(to: text) {
+            let sel = tv.selectedRange()
+            storage.setAttributedString(text)
+            if sel.location + sel.length <= text.length { tv.setSelectedRange(sel) }
+        }
+    }
 }
 
 struct PanelView: View {
@@ -28,6 +98,7 @@ struct PanelView: View {
     var onCopy: () -> Void
     var onPin: () -> Void
     var onClose: () -> Void
+    var onToggleOriginal: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,7 +106,7 @@ struct PanelView: View {
                 Text(model.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Spacer()
                 Toggle("Original", isOn: $model.showOriginal).toggleStyle(.checkbox).font(.caption)
-                    .onChange(of: model.showOriginal) { _, v in UserDefaults.standard.set(v, forKey: AppConfig.Keys.showOriginal) }
+                    .onChange(of: model.showOriginal) { _, v in UserDefaults.standard.set(v, forKey: AppConfig.Keys.showOriginal); onToggleOriginal() }
                 Button(action: onCopy) { Image(systemName: "doc.on.doc") }.help("Copy translation")
                 Button(action: onPin) { Image(systemName: model.pinned ? "pin.fill" : "pin") }.help("Keep panel open")
                 Button(action: onClose) { Image(systemName: "xmark") }.help("Close")
@@ -43,43 +114,9 @@ struct PanelView: View {
             .buttonStyle(.borderless)
             .padding(.horizontal, 10).padding(.vertical, 6)
             Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    if let m = model.message {
-                        Text(m).foregroundStyle(.secondary).padding(12)
-                    }
-                    ForEach(model.segments) { seg in
-                        SegmentView(seg: seg, showOriginal: model.showOriginal && !model.isImage)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-            }
+            SelectableText(text: model.rendered)
         }
         .frame(minWidth: 360, minHeight: 120)
-    }
-}
-
-struct SegmentView: View {
-    @ObservedObject var seg: SegmentState
-    var showOriginal: Bool
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if showOriginal && !seg.passthrough {
-                Text(seg.source).font(.system(size: 12)).foregroundStyle(.secondary).textSelection(.enabled)
-            }
-            if let e = seg.error {
-                Text("⚠️ \(e)").font(.system(size: 12)).foregroundStyle(.red).textSelection(.enabled)
-            } else if seg.output.isEmpty && !seg.done {
-                HStack(spacing: 6) { ProgressView().controlSize(.small); Text(seg.note ?? "Translating…").font(.caption).foregroundStyle(.secondary) }
-            } else {
-                Text(seg.output)
-                    .font(seg.passthrough ? .system(size: 12, design: .monospaced) : .system(size: 14))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if let n = seg.note, !seg.done { Text(n).font(.caption2).foregroundStyle(.secondary) }
-            }
-        }
     }
 }
 
@@ -94,7 +131,7 @@ final class TranslationPanelController {
     private var lastFit = Date.distantPast
 
     init() {
-        let view = PanelView(model: model, onCopy: { [weak self] in self?.copyAll() }, onPin: { [weak self] in self?.togglePin() }, onClose: { [weak self] in self?.panel.orderOut(nil) })
+        let view = PanelView(model: model, onCopy: { [weak self] in self?.copyAll() }, onPin: { [weak self] in self?.togglePin() }, onClose: { [weak self] in self?.panel.orderOut(nil) }, onToggleOriginal: { [weak self] in self?.model.render(); self?.fitToContent(force: true) })
         let hosting = NSHostingView(rootView: view)
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 520, height: 360), styleMask: [.titled, .closable, .resizable, .nonactivatingPanel, .utilityWindow, .fullSizeContentView], backing: .buffered, defer: false)
         panel.title = "Chatot"
@@ -117,6 +154,7 @@ final class TranslationPanelController {
 
     func showMessage(_ text: String) {
         model.segments = []; model.message = text; model.status = "Chatot"; model.isImage = false
+        model.render()
         show()
         fitToContent(force: true)
     }
@@ -142,6 +180,7 @@ final class TranslationPanelController {
     private func start(status: String, isImage: Bool, textLength: Int) {
         currentTask?.cancel()
         model.segments = []; model.message = nil; model.status = status; model.isImage = isImage
+        model.render()
         show(textLength: textLength)
     }
 
@@ -161,6 +200,7 @@ final class TranslationPanelController {
     }
 
     private func apply(_ ev: TranslationEvent, to model: PanelModel) {
+        defer { model.render() }
         switch ev {
         case .segments(let segs):
             model.segments = segs.map(SegmentState.init(segment:))

@@ -62,7 +62,8 @@ final class ScreenshotWatcher {
     }
 
     var enabled: Bool {
-        UserDefaults.standard.object(forKey: Self.defaultsKey) == nil ? true : UserDefaults.standard.bool(forKey: Self.defaultsKey)
+        if AppDelegate.paused { return false }
+        return UserDefaults.standard.object(forKey: Self.defaultsKey) == nil ? true : UserDefaults.standard.bool(forKey: Self.defaultsKey)
     }
 
     func start() {
