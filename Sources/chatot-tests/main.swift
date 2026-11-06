@@ -30,6 +30,8 @@ ValidatorTests().testEnglishOutputFails()
 ValidatorTests().testTruncatedOutputFails()
 ValidatorTests().testHarnessLeakFails()
 ValidatorTests().testNumericSourcePasses()
+ValidatorTests().testStripPreambleRemovesSourceAcknowledgement()
+ValidatorTests().testLeakedTagOrCommentaryFails()
 ValidatorTests().testEmptyFails()
 
 print("\(checks) checks, \(failures) failures")

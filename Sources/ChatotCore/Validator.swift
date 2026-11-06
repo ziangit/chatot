@@ -24,6 +24,53 @@ public enum Validator {
         s.lowercased().filter { !$0.isWhitespace && !$0.isPunctuation }
     }
 
+    /// The model sometimes opens with an acknowledgement wrapped in the input's <source> tags
+    /// ("<source>标签内的内容是需要翻译的源文本…</source>") before the translation. Remove that block and any
+    /// stray leading/trailing tags. Returns the cleaned text and whether anything was removed.
+    public static func stripPreamble(_ output: String, source: String = "") -> (text: String, stripped: String?) {
+        var out = output
+        var removed: [String] = []
+        let ws = CharacterSet.whitespacesAndNewlines
+        while true {
+            let t = out.trimmingCharacters(in: ws)
+            if t.hasPrefix("<source>"), let close = t.range(of: "</source>") {
+                let rest = String(t[close.upperBound...]).trimmingCharacters(in: ws)
+                if rest.isEmpty {
+                    // The whole translation was wrapped in the tags: unwrap rather than discard.
+                    removed.append("<source>…</source> wrapper")
+                    out = String(t[t.index(t.startIndex, offsetBy: "<source>".count)..<close.lowerBound]).trimmingCharacters(in: ws)
+                    break
+                }
+                removed.append(String(t[..<close.upperBound]))
+                out = rest
+            } else if t.hasPrefix("<source>") {
+                removed.append("<source>"); out = String(t.dropFirst("<source>".count))
+            } else if t.hasPrefix("</source>") {
+                removed.append("</source>"); out = String(t.dropFirst("</source>".count))
+            } else { out = t; break }
+        }
+        if out.hasSuffix("</source>") { removed.append("</source>"); out = String(out.dropLast("</source>".count)).trimmingCharacters(in: ws) }
+        // A short opening line that talks about the tags or the act of translating ("标签内的内容是需要翻译的源文本，以下为译文：")
+        // is an acknowledgement, not translation, unless the source itself is about translation or tags.
+        let paras = out.components(separatedBy: "\n\n")
+        if paras.count > 1, let first = paras.first?.trimmingCharacters(in: ws), first.count <= 80,
+           isAcknowledgement(first), !sourceMentionsTranslation(source) {
+            removed.append(first)
+            out = paras.dropFirst().joined(separator: "\n\n").trimmingCharacters(in: ws)
+        }
+        return (out, removed.isEmpty ? nil : removed.joined(separator: " "))
+    }
+
+    static let ackMarkers = ["标签", "译文", "翻译", "source", "按规则", "按要求", "只输出", "不回答", "不是对我"]
+    static func isAcknowledgement(_ line: String) -> Bool {
+        let hits = ackMarkers.filter { line.contains($0) }.count
+        return hits >= 2 || (hits == 1 && (line.hasSuffix("：") || line.hasSuffix(":") || line.contains("以下")))
+    }
+    static func sourceMentionsTranslation(_ source: String) -> Bool {
+        let l = source.lowercased()
+        return l.contains("translat") || l.contains("<source>") || l.contains("标签") || l.contains("译")
+    }
+
     /// `expectCJK` is true when the target language is Chinese or Japanese.
     public static func validate(source: String, output: String, expectCJK: Bool = true) -> ValidationResult {
         let out = output.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -50,6 +97,17 @@ public enum Validator {
         }
         if out.contains("<system-reminder>") || out.contains("# Environment") || out.contains("工作目录") && !source.contains("工作目录") {
             return .fail("harness metadata leaked into output")
+        }
+        if !source.contains("<source>") && (out.contains("<source>") || out.contains("</source>")) {
+            return .fail("source tag leaked into output (preamble)")
+        }
+        // A leading paragraph in the source language that is not in the source is the model talking to itself
+        // ("Hmm, that's not right — the system says output only the translation…").
+        if expectCJK, let first = out.components(separatedBy: "\n\n").first {
+            let words = first.split(whereSeparator: { $0.isWhitespace }).count
+            if cjkCount(first) == 0 && words >= 5 && latinLetterCount(first) > 20 && !normalize(source).contains(normalize(first)) {
+                return .fail("commentary before translation (preamble)")
+            }
         }
         return .pass
     }

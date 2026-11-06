@@ -101,20 +101,44 @@ public final class Translator {
                 var acc = ""
                 var streamed = ""
                 var req = request
-                if attempt > 0, let last = errors.last, last.contains("echo") {
-                    // The model repeated the source; say so explicitly on the retry.
-                    req = TranslationRequest(system: request.system, text: request.text + "\n\n(The previous answer repeated the source text unchanged. Output only the translation.)", image: request.image, imageMediaType: request.imageMediaType)
+                if attempt > 0, let last = errors.last {
+                    // Say explicitly what went wrong on the retry.
+                    var nudge: String?
+                    if last.contains("echo") { nudge = "(The previous answer repeated the source text unchanged. Output only the translation.)" }
+                    else if last.contains("preamble") { nudge = "(The previous answer began with commentary about the tags or instructions. Start directly with the first translated sentence and output nothing else.)" }
+                    if let n = nudge {
+                        req = TranslationRequest(system: request.system, text: request.text + "\n\n" + n, image: request.image, imageMediaType: request.imageMediaType)
+                    }
                 }
                 do {
+                    let live = attempt == 0 && provider.id == usable.first?.id
+                    var released = false   // false while the output may still be an opening "<source>…" acknowledgement
                     for try await piece in provider.stream(req) {
                         acc += piece
                         // Only stream deltas live on the first attempt of the first provider; retries replace the text at the end.
-                        if attempt == 0 && provider.id == usable.first?.id {
-                            streamed += piece
-                            onEvent(.delta(segment: seg.id, text: piece))
+                        guard live else { continue }
+                        if !released {
+                            let head = acc.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if head.isEmpty || "<source>".hasPrefix(head) { continue }           // too early to tell
+                            if head.hasPrefix("<source>") {
+                                // The model opened with the tag: an acknowledgement follows, then a blank line, then the
+                                // translation. Hold until something follows the closing tag or the first blank line, so the
+                                // strip can see the whole acknowledgement; the end-of-stream strip covers the rest.
+                                let after: Substring? = head.range(of: "</source>").map { head[$0.upperBound...] } ?? head.range(of: "\n\n").map { head[$0.upperBound...] }
+                                guard let rest = after, !rest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                                let cleaned = Validator.stripPreamble(acc, source: seg.text).text
+                                released = true; streamed = cleaned
+                                if !cleaned.isEmpty { onEvent(.delta(segment: seg.id, text: cleaned)) }
+                                continue
+                            }
+                            released = true; streamed = acc; onEvent(.delta(segment: seg.id, text: acc)); continue
                         }
+                        streamed += piece
+                        onEvent(.delta(segment: seg.id, text: piece))
                     }
-                    let out = acc.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let (cleaned, stripped) = Validator.stripPreamble(acc, source: seg.text)
+                    if let st = stripped { Log.info("segment \(seg.id) \(provider.id) attempt \(attempt) stripped preamble: \(st.prefix(120))") }
+                    let out = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
                     if validate {
                         let v = Validator.validate(source: seg.text, output: out, expectCJK: wantCJK)
                         if !v.ok {

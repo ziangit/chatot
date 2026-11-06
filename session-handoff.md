@@ -12,7 +12,7 @@
 - Panel: placed off the selection (mouse band), grows with content, native text view (select, ⌘C, Original toggle, Copy, Close), screenshot output shows translations only.
 - VS Code/Cursor extension 0.2.1 (`vscode-extension/`): terminal/editor right-click items only, localized (nls), installed in both.
 - Chrome extension 0.2.0 (`chrome-extension/`, loaded unpacked by the user, ID mhkpkmkbjfdikhgjlnkfakkdhoennoai, now with `_locales` en/zh_CN and the pixel icon) + native-messaging host registered for Chrome/Chromium/Brave/Edge/Arc. Needs one reload by the user.
-- Core: Chunker, Validator (lenient for short labels/names; CJK→English auto-detect), Glossary, ClaudeAPIProvider (default) + OpenAICompatibleProvider (ChatGPT, DeepSeek text-only); one provider active at a time. Tests: `swift run chatot-tests` (43 checks).
+- Core: Chunker, Validator (lenient for short labels/names; CJK→English auto-detect), Glossary, ClaudeAPIProvider (default) + OpenAICompatibleProvider (ChatGPT, DeepSeek text-only); one provider active at a time. Tests: `swift run chatot-tests` (64 checks). 2026-11-06: preamble-leak fix (prompt rule + `Validator.stripPreamble` + stream hold-back + reject/retry with nudge; see ARCHITECTURE "Preamble leak"); `Config.description` redacts keys (issue #1, filed by an automated scanner account; verify such reports before acting).
 
 ## State of the user's machine (not visible in the repo)
 - App signed with the self-signed identity "Chatot Dev" (login keychain) so TCC grants persist. Only permission needed now: Desktop folder access for the screenshot watcher (already granted). Accessibility and Screen Recording are no longer used.
@@ -26,6 +26,7 @@
 
 ## Open questions
 - None from the user. Do not reopen Safari inline translation, hotkeys or fallbacks unless asked.
+- Never close, comment on or change a public GitHub issue (including "fixes #N" in commit messages) unless the user asks; "check this" means verify and report only.
 
 ## Releasing
 `scripts/release.sh <version>` builds the app, re-signs a copy ad hoc, zips it with the .vsix and the Chrome extension (plus install.sh), tags and creates the GitHub release. Bump `CFBundleShortVersionString` in scripts/Info.plist first. Release apps are not notarized; the README tells users to clear quarantine.
