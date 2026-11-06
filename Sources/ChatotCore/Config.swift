@@ -78,3 +78,18 @@ public struct Config: Equatable {
         return out
     }
 }
+
+extension Config: CustomStringConvertible {
+    /// Keys are never printed in full: `print(config)` and string interpolation show at most a short prefix.
+    public static func redact(_ key: String?) -> String {
+        guard let k = key, !k.isEmpty else { return "nil" }
+        return k.count > 12 ? String(k.prefix(8)) + "…(\(k.count) chars)" : "…(\(k.count) chars)"
+    }
+    public var description: String {
+        """
+        Config(provider: \(provider), anthropicKey: \(Config.redact(anthropicKey)), openaiKey: \(Config.redact(openaiKey)), deepseekKey: \(Config.redact(deepseekKey)), \
+        claudeModel: \(claudeModel), openaiModel: \(openaiModel), deepseekModel: \(deepseekModel), claudeEffort: \(claudeEffort), \
+        targetLanguage: \(targetLanguage), maxConcurrency: \(maxConcurrency), chunkTargetChars: \(chunkTargetChars))
+        """
+    }
+}

@@ -35,4 +35,13 @@ struct ConfigTests {
         let none = Translator.makeProviders(config: Config.load(environment: ["CHATOT_PROVIDER": "chatgpt"]))
         expect(none.isEmpty)
     }
+
+    func testDescriptionRedactsAllKeys() {
+        let keys = ["ANTHROPIC_API_KEY": "sk-ant-api03-SECRET-ANTHROPIC-VALUE", "OPENAI_API_KEY": "sk-proj-SECRET-OPENAI-VALUE", "DEEPSEEK_API_KEY": "sk-SECRET-DEEPSEEK-VALUE"]
+        let c = Config.load(environment: keys)
+        let printed = "\(c)"
+        for v in keys.values { expect(!printed.contains(v)); expect(!printed.contains(String(v.dropFirst(8)))) }
+        expect(printed.contains("sk-ant-a…") && printed.contains("chars)"))
+        expect(Config.redact(nil) == "nil" && Config.redact("") == "nil" && !Config.redact("short-key").contains("short"))
+    }
 }

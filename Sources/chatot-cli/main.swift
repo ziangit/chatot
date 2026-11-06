@@ -78,8 +78,7 @@ final class ConsoleRenderer {
 let sem = DispatchSemaphore(value: 0)
 switch cmd {
 case "config":
-    var c = config; c.anthropicKey = c.anthropicKey.map { String($0.prefix(10)) + "…" }
-    print(c)
+    print(config)   // Config.description redacts every key
 case "providers":
     for p in Translator.makeProviders(config: config) { print("\(p.id) available (images: \(p.supportsImages))") }
 case "translate":
