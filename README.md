@@ -5,7 +5,7 @@
 
 Select → right-click → **Translate with Chatot**. A macOS menubar app that translates selected text or images in any app, including the Claude Code terminal, Chrome and native apps, into a floating panel next to your cursor. Built for one workflow: keep your agent conversation in English for quality, read the parts you care about in Chinese.
 
-- **Terminal (Claude Code in VS Code / Cursor):** select output, right-click → Translate with Chatot.
+- **Terminal (VS Code / Cursor, any CLI: Claude Code, Codex, a plain shell):** select output, right-click → Translate with Chatot. Terminal.app and iTerm2 work through the Services menu.
 - **Chrome:** right-click selected text or an image → Translate with Chatot.
 - **Native apps (Safari, Preview, Notes, PDF viewers):** right-click → Services → Translate with Chatot.
 - **Screenshots:** after ⇧⌘4 or ⇧⌘3, a card offers to translate the screenshot.
@@ -29,15 +29,24 @@ Cost: about $0.002 for an 855-word text with Haiku; a short paragraph is a fract
 
 Right-click → Services → Translate with Chatot now works in native apps. For the terminal and Chrome, continue below.
 
-### Claude Code in VS Code / Cursor (the main use case)
+### Agent CLIs in the terminal (Claude Code, Codex): one-time setting
 
-Claude Code captures the mouse by default, so plain drag-select does not work in its terminal UI. Turn that off: add to `~/.zshrc` (or `terminal.integrated.env.osx` in VS Code settings)
+Chatot translates whatever you can select, so it works with any program in any terminal. The catch is full-screen agent UIs: Claude Code and Codex capture the mouse by default, so plain drag-select does nothing in their UI and there is nothing for Chatot to receive. Each has a switch that turns the capture off. Set it once; Chatot cannot do this for you because it happens inside the CLI.
+
+**Claude Code** — add to `~/.zshrc` (or `terminal.integrated.env.osx` in VS Code settings), then open a new terminal and start `claude` again:
 
 ```
 export CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1
 ```
 
-then open a new terminal and start `claude` again. Selection and wheel-scrolling behave like a normal terminal afterwards.
+**Codex** — add to `~/.codex/config.toml` (or run `codex --no-alt-screen` for one session):
+
+```toml
+[tui]
+alternate_screen = "never"
+```
+
+Both switches make the CLI draw inline instead of on the alternate screen: its output stays in your scrollback, the wheel scrolls history, and drag-select works like a normal terminal. Plain shells, other CLIs that do not capture the mouse, Terminal.app and iTerm2 need nothing. If you only ever get one word translated from a terminal, this setting is the reason.
 
 Install the extension that adds the right-click item (Electron apps do not show the macOS Services menu):
 

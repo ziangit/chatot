@@ -5,7 +5,7 @@
 
 选中 → 右键 → **使用 Chatot 翻译**。一个 macOS 菜单栏应用：在任意应用里（包括 Claude Code 的终端、Chrome、原生应用）选中文本或图片，译文出现在光标旁的浮动面板里。它只为一个工作流而生：和 Agent 的对话保持英文以保证质量，想细读的部分快速看中文。
 
-- **终端（VS Code / Cursor 里的 Claude Code）：** 选中输出，右键 → 使用 Chatot 翻译。
+- **终端（VS Code / Cursor，任何 CLI：Claude Code、Codex、普通 shell）：** 选中输出，右键 → 使用 Chatot 翻译。Terminal.app 和 iTerm2 走「服务」菜单。
 - **Chrome：** 右键选中的文本或图片 → 使用 Chatot 翻译。
 - **原生应用（Safari、预览、备忘录、PDF 阅读器）：** 右键 → 服务 → 使用 Chatot 翻译。
 - **截图：** ⇧⌘4 / ⇧⌘3 之后，弹出一张小卡片，一键翻译这张截图。
@@ -29,15 +29,24 @@
 
 此时原生应用里「右键 → 服务 → 使用 Chatot 翻译」已可用。终端和 Chrome 见下文。
 
-### VS Code / Cursor 里的 Claude Code（主要场景）
+### 终端里的 Agent CLI（Claude Code、Codex）：一次性设置
 
-Claude Code 默认接管鼠标，终端里无法直接拖选。关掉它：在 `~/.zshrc`（或 VS Code 设置的 `terminal.integrated.env.osx`）里加
+Chatot 翻译的是你能选中的任何文字，所以任何终端里的任何程序都能用。例外是全屏的 Agent 界面：Claude Code 和 Codex 默认接管鼠标，在它们的界面里拖选没有反应，Chatot 也就收不到任何内容。两者都有关闭的开关，设置一次即可；这发生在 CLI 内部，Chatot 无法替你完成。
+
+**Claude Code** — 在 `~/.zshrc`（或 VS Code 设置的 `terminal.integrated.env.osx`）里加入，然后新开终端、重新启动 `claude`：
 
 ```
 export CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1
 ```
 
-然后新开一个终端、重新启动 `claude`。之后选中和滚轮滚动都和普通终端一样。
+**Codex** — 在 `~/.codex/config.toml` 里加入（或单次运行 `codex --no-alt-screen`）：
+
+```toml
+[tui]
+alternate_screen = "never"
+```
+
+这两个开关都会让 CLI 改为内联绘制而不是使用备用屏幕：输出留在滚动历史里，滚轮可以翻看历史，拖选和普通终端一样。普通 shell、其他不接管鼠标的 CLI、Terminal.app 和 iTerm2 不需要任何设置。如果你在终端里翻译总是只得到一个单词，原因就是这个设置。
 
 Electron 应用不显示 macOS 的「服务」菜单，所以需要装一个小扩展来加右键菜单项：
 
